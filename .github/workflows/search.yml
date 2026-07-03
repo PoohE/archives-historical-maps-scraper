@@ -30,10 +30,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Create .env from secrets
-        run: echo "NOTION_TOKEN=${{ secrets.NOTION_TOKEN }}" > .env
-
       - name: Run search
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
         run: |
           python -u run_search.py \
             --resume \

@@ -71,8 +71,11 @@ class ArchiveHealth:
                 Path(__file__).parent.parent.parent / "Каталогизация" / ".env",
             ]:
                 if env_path.exists():
-                    token = env_path.read_text(encoding="utf-8").split("NOTION_TOKEN=")[1].split()[0]
-                    break
+                    parts = env_path.read_text(encoding="utf-8").split("NOTION_TOKEN=")
+                    if len(parts) > 1:
+                        token = parts[1].split()[0] if parts[1].split() else ""
+                    if token:
+                        break
         if not token:
             raise RuntimeError("NOTION_TOKEN не найден: задайте переменную окружения или .env")
         self._token = token
