@@ -9,6 +9,7 @@
     health.save()                     # в конце — записать всё в Notion
 """
 import json
+import os
 import time
 import urllib.error
 import urllib.request
@@ -61,9 +62,20 @@ class ArchiveHealth:
     """
 
     def __init__(self) -> None:
-        env = Path(__file__).parent.parent.parent / "Каталогизация" / ".env"
-        with open(env, encoding="utf-8") as f:
-            self._token = f.read().split("NOTION_TOKEN=")[1].split()[0]
+        # 1. переменная окружения (GitHub Actions)
+        token = os.environ.get("NOTION_TOKEN", "")
+        if not token:
+            # 2. .env в корне проекта (локально или облако)
+            for env_path in [
+                Path(__file__).parent.parent / ".env",
+                Path(__file__).parent.parent.parent / "Каталогизация" / ".env",
+            ]:
+                if env_path.exists():
+                    token = env_path.read_text(encoding="utf-8").split("NOTION_TOKEN=")[1].split()[0]
+                    break
+        if not token:
+            raise RuntimeError("NOTION_TOKEN не найден: задайте переменную окружения или .env")
+        self._token = token
 
         # {library_id: {"status": str, "problem": str, "workaround": str}}
         self._updates: dict[str, dict] = {}
