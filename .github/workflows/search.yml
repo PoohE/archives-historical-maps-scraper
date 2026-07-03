@@ -1,0 +1,53 @@
+name: ИГИС — Поиск карт
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_combos:
+        description: 'Комбинаций за запуск (0 = без лимита)'
+        required: false
+        default: '300'
+  schedule:
+    # Каждые 6 часов: 0, 6, 12, 18 UTC = 3, 9, 15, 21 МСК
+    - cron: '0 0,6,12,18 * * *'
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create .env from secrets
+        run: echo "NOTION_TOKEN=${{ secrets.NOTION_TOKEN }}" > .env
+
+      - name: Run search
+        run: |
+          python -u run_search.py \
+            --resume \
+            --run-dir cloud \
+            --max-combos ${{ github.event.inputs.max_combos || '300' }}
+
+      - name: Commit results back to repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add output/cloud/
+          if git diff --staged --quiet; then
+            echo "Нет новых результатов для коммита"
+          else
+            git commit -m "Прогресс поиска ИГИС: $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git push
+          fi

@@ -1,0 +1,32 @@
+# Результаты локальных запусков (большие файлы, не нужны в git)
+output/20*/
+
+# Оставляем облачный прогресс — нужен для GitHub Actions
+!output/cloud/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Секреты
+.env
+*.env
+
+# Временные файлы
+*.tmp
+*.log
+
+# Резервные копии Windows (имена с «копия с компьютера»)
+*копия*
+*HUAWEI*
+
+# Старые локальные результаты (не для облака)
+output/search_*.csv
+output/review_*.csv
+output/search_checkpoint.json
+output/*.txt
+kaluga.csv
+perm.csv
