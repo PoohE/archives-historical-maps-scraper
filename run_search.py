@@ -129,10 +129,14 @@ def main():
     territories = build_territories()
     total_combos = len(territories) * len(KEYWORDS) * len(sources)
 
-    # Папка запуска: при --resume — последняя существующая, иначе — новая
+    # Папка запуска: --run-dir (фиксированная, для облака) → --resume → новая
     base_out = Path(__file__).parent / "output"
     base_out.mkdir(exist_ok=True)
-    if args.resume:
+    if args.run_dir_override:
+        run_dir = base_out / args.run_dir_override
+        run_dir.mkdir(parents=True, exist_ok=True)
+        print(f"[Облако] Фиксированная папка: output/{args.run_dir_override}/")
+    elif args.resume:
         existing_runs = sorted(base_out.glob("20*"))  # папки YYYYMMDD_HHMMSS
         if existing_runs:
             run_dir = existing_runs[-1]
@@ -145,8 +149,8 @@ def main():
         run_dir = base_out / datetime.now().strftime("%Y%m%d_%H%M%S")
         run_dir.mkdir(exist_ok=True)
 
-    # Контрольная точка
-    done = load_checkpoint(run_dir) if args.resume else set()
+    # Контрольная точка (грузим при --resume или фиксированной папке облака)
+    done = load_checkpoint(run_dir) if (args.resume or args.run_dir_override) else set()
     if done:
         print(f"[Резюме] Уже выполнено: {len(done)} комбинаций")
         # Показать прогресс по источникам
@@ -175,15 +179,21 @@ def main():
 
     from triggers import classify
 
-    with (open(out_file, "w", newline="", encoding="utf-8-sig") as csvf,
-          open(review_file, "w", newline="", encoding="utf-8-sig") as rvf):
+    # Дописываем к существующим файлам, если продолжаем (иначе теряем прошлые результаты)
+    files_exist = out_file.exists() and done
+    file_mode = "a" if files_exist else "w"
+
+    with (open(out_file, file_mode, newline="", encoding="utf-8-sig") as csvf,
+          open(review_file, file_mode, newline="", encoding="utf-8-sig") as rvf):
 
         writer  = csv.writer(csvf)
         rv_writer = csv.writer(rvf)
         COLS = ["Источник", "Территория", "Ключевое слово",
                 "Название", "Год от", "Год до", "URL", "Описание"]
-        writer.writerow(COLS)
-        rv_writer.writerow(COLS + ["Решение", "Комментарий"])  # заполнит review.py
+        # Заголовок пишем только для нового файла
+        if file_mode == "w":
+            writer.writerow(COLS)
+            rv_writer.writerow(COLS + ["Решение", "Комментарий"])  # заполнит review.py
 
         MAX_EMPTY = 3  # после стольких пустых ответов подряд — пропускаем источник
 
