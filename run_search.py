@@ -107,6 +107,15 @@ def main():
                         help="Фиксированная папка запуска (для облака: output/cloud)")
     args = parser.parse_args()
 
+    # Самодиагностика: проверяем что результаты не уйдут в gitignored-папку
+    if args.run_dir_override and args.run_dir_override.startswith("20"):
+        print(f"[ОШИБКА] --run-dir '{args.run_dir_override}' начинается с '20' — "
+              f"такие папки попадают в .gitignore. Используй 'cloud' или другое имя.")
+        sys.exit(1)
+    if not args.run_dir_override and not args.resume and not args.dry_run:
+        print("[ПРЕДУПРЕЖДЕНИЕ] Без --run-dir и --resume результаты пойдут в папку с датой "
+              "(gitignored). Для облака добавь --run-dir cloud.")
+
     # Импортируем searcher и health-монитор после добавления modules/ в путь
     import importlib.util
     spec = importlib.util.spec_from_file_location(
