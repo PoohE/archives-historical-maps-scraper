@@ -86,25 +86,19 @@ def _in_year_range(y_from: int | None, y_to: int | None,
 
 # ── Президентская библиотека (prlib.ru) ──────────────────────────────────────
 
-PRLIB_SEARCH = "https://www.prlib.ru/search/"
-# Прямая ссылка на раздел «Исторические карты» — для справки
-# https://www.prlib.ru/section/1157354
+# Новый URL (2025): коллекция «Территория России», collection_id=467000
+PRLIB_SEARCH = "https://prlib.ru/collections/467000/search"
+PRLIB_BASE   = "https://prlib.ru"
 
 def _search_prlib(query: str, year_from: int | None, year_to: int | None,
                   max_pages: int) -> Iterator[LibraryRecord]:
     """
-    Президентская библиотека (prlib.ru) — Bitrix CMS.
-    Поиск: /search/?q=<query>&PAGEN_1=<page>&type=StillImage
-    Результаты: .search-result__item → ссылки на /item/<id>
-
-    Если структура HTML изменится — уточнить CSS-селекторы в _parse_prlib_item().
+    Президентская библиотека (prlib.ru) — новый сайт 2025.
+    Поиск: /collections/467000/search?text=<query>&page=<page>
+    Результаты: карточки материалов с заголовком, годом и ссылкой.
     """
-    if not _check(PRLIB_SEARCH):
-        print("[ПрБ] Сайт prlib.ru недоступен, пропуск.")
-        return
-
     for page in range(1, max_pages + 1):
-        params: dict = {"q": query, "PAGEN_1": page, "type": "StillImage"}
+        params: dict = {"text": query, "page": page}
         try:
             resp = _get(PRLIB_SEARCH, params=params)
         except Exception as e:
@@ -112,39 +106,68 @@ def _search_prlib(query: str, year_from: int | None, year_to: int | None,
             break
 
         soup = BeautifulSoup(resp.text, "lxml")
+
+        # Новая структура: карточки результатов
         items = soup.select(
-            ".search-result__item, .search-page__item, article.result-item"
+            "article, .search-item, .collection-item, .result-card, "
+            "[class*='search-result'], [class*='collection-result']"
         )
         if not items:
+            # Fallback: любые ссылки ведущие на /item/ или /collections/
+            links = soup.find_all("a", href=re.compile(r"/(item|record|document)/"))
+            if not links:
+                break
+            # Оборачиваем ссылки в псевдо-items
+            for link in links:
+                href = link["href"]
+                item_url = href if href.startswith("http") else f"{PRLIB_BASE}{href}"
+                title = link.get_text(" ", strip=True)
+                if not title:
+                    continue
+                y_from, y_to = _parse_years(title)
+                if not _in_year_range(y_from, y_to, year_from, year_to):
+                    continue
+                yield LibraryRecord(
+                    title=title, year_from=y_from, year_to=y_to,
+                    url=item_url, library_id="prlib",
+                    library_name="Президентская библиотека",
+                )
             break
 
+        found_on_page = False
         for item in items:
-            link = item.find("a", href=re.compile(r"/item/"))
+            link = (item.find("a", href=re.compile(r"/(item|record|document|collections)/"))
+                    or item.find("a", href=True))
             if not link:
                 continue
             href = link["href"]
-            item_url = href if href.startswith("http") else f"https://www.prlib.ru{href}"
+            if not href or href == "#":
+                continue
+            item_url = href if href.startswith("http") else f"{PRLIB_BASE}{href}"
 
-            title_el = item.select_one("h2, h3, .title, .search-result__title")
-            date_el = item.select_one(".date, .year, time, .search-result__meta")
-            desc_el = item.select_one("p, .description, .search-result__snippet")
+            title_el = item.select_one(
+                "h2, h3, h4, .title, [class*='title'], [class*='name']"
+            )
+            date_el = item.select_one(
+                ".date, .year, time, [class*='date'], [class*='year']"
+            )
 
             title = title_el.get_text(" ", strip=True) if title_el else link.get_text(" ", strip=True)
             date_raw = date_el.get_text(" ", strip=True) if date_el else ""
-            y_from, y_to = _parse_years(date_raw)
+            y_from, y_to = _parse_years(date_raw or title)
 
-            if not _in_year_range(y_from, y_to, year_from, year_to):
+            if not title or not _in_year_range(y_from, y_to, year_from, year_to):
                 continue
 
+            found_on_page = True
             yield LibraryRecord(
-                title=title,
-                year_from=y_from,
-                year_to=y_to,
-                description=(desc_el.get_text(" ", strip=True)[:400] if desc_el else ""),
-                url=item_url,
-                library_id="prlib",
+                title=title, year_from=y_from, year_to=y_to,
+                url=item_url, library_id="prlib",
                 library_name="Президентская библиотека",
             )
+
+        if not found_on_page:
+            break
 
 
 # ── Руниверс (runivers.ru) ───────────────────────────────────────────────────
