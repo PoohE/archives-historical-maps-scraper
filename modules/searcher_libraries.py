@@ -129,8 +129,8 @@ def _search_prlib(query: str, year_from: int | None, year_to: int | None,
             date_el = item.select_one(".date, .year, time, .search-result__meta")
             desc_el = item.select_one("p, .description, .search-result__snippet")
 
-            title = title_el.get_text(strip=True) if title_el else link.get_text(strip=True)
-            date_raw = date_el.get_text(strip=True) if date_el else ""
+            title = title_el.get_text(" ", strip=True) if title_el else link.get_text(" ", strip=True)
+            date_raw = date_el.get_text(" ", strip=True) if date_el else ""
             y_from, y_to = _parse_years(date_raw)
 
             if not _in_year_range(y_from, y_to, year_from, year_to):
@@ -140,7 +140,7 @@ def _search_prlib(query: str, year_from: int | None, year_to: int | None,
                 title=title,
                 year_from=y_from,
                 year_to=y_to,
-                description=(desc_el.get_text(strip=True)[:400] if desc_el else ""),
+                description=(desc_el.get_text(" ", strip=True)[:400] if desc_el else ""),
                 url=item_url,
                 library_id="prlib",
                 library_name="Президентская библиотека",
@@ -197,11 +197,11 @@ def _search_runivers(query: str, year_from: int | None, year_to: int | None,
             seen.add(item_url)
 
             title_el = el.select_one("h2, h3, .title, strong") if el.name != "a" else None
-            title = title_el.get_text(strip=True) if title_el else link.get_text(strip=True)
+            title = title_el.get_text(" ", strip=True) if title_el else link.get_text(" ", strip=True)
 
             date_el = (el.select_one(".date, .year, .meta")
                        if el.name != "a" else None)
-            date_raw = date_el.get_text(strip=True) if date_el else ""
+            date_raw = date_el.get_text(" ", strip=True) if date_el else ""
             y_from, y_to = _parse_years(date_raw or title)
 
             if not _in_year_range(y_from, y_to, year_from, year_to):
@@ -255,11 +255,11 @@ def _search_rgo(query: str, year_from: int | None, year_to: int | None,
             item_url = href if href.startswith("http") else f"https://geoportal.rgo.ru{href}"
 
             title_el = item.select_one("h2, h3, .title, .node__title")
-            title = (title_el.get_text(strip=True) if title_el
-                     else link.get_text(strip=True))
+            title = (title_el.get_text(" ", strip=True) if title_el
+                     else link.get_text(" ", strip=True))
 
             date_el = item.select_one(".date, time, .field--type-datetime")
-            date_raw = date_el.get_text(strip=True) if date_el else ""
+            date_raw = date_el.get_text(" ", strip=True) if date_el else ""
             y_from, y_to = _parse_years(date_raw or title)
 
             if not _in_year_range(y_from, y_to, year_from, year_to):
@@ -272,7 +272,7 @@ def _search_rgo(query: str, year_from: int | None, year_to: int | None,
                 title=title,
                 year_from=y_from,
                 year_to=y_to,
-                description=(desc_el.get_text(strip=True)[:400] if desc_el else ""),
+                description=(desc_el.get_text(" ", strip=True)[:400] if desc_el else ""),
                 url=item_url,
                 library_id="rgo",
                 library_name="Геопортал РГО",
@@ -322,7 +322,7 @@ def _search_aonb(query: str, year_from: int | None, year_to: int | None,
             continue
         seen.add(item_url)
 
-        title = link.get_text(strip=True)
+        title = link.get_text(" ", strip=True)
         if not title:
             continue
         # Мягкая фильтрация: хотя бы одно слово из запроса есть в названии
@@ -387,8 +387,8 @@ def _search_permkrai(query: str, year_from: int | None, year_to: int | None,
             item_url = href if href.startswith("http") else f"https://lib.permkrai.ru{href}"
 
             title_el = item.select_one("h3.title, h2.title, h2, h3")
-            title = (title_el.get_text(strip=True) if title_el
-                     else link.get_text(strip=True))
+            title = (title_el.get_text(" ", strip=True) if title_el
+                     else link.get_text(" ", strip=True))
 
             # Пропускаем явно не картографические материалы
             if not _is_cart(title):
@@ -397,7 +397,7 @@ def _search_permkrai(query: str, year_from: int | None, year_to: int | None,
             date_el = item.select_one(
                 ".search-snippet-info, .submitted, .meta, .date"
             )
-            date_raw = date_el.get_text(strip=True) if date_el else ""
+            date_raw = date_el.get_text(" ", strip=True) if date_el else ""
             y_from, y_to = _parse_years(date_raw or title)
 
             if not _in_year_range(y_from, y_to, year_from, year_to):
@@ -408,7 +408,7 @@ def _search_permkrai(query: str, year_from: int | None, year_to: int | None,
                 title=title,
                 year_from=y_from,
                 year_to=y_to,
-                description=(desc_el.get_text(strip=True)[:400] if desc_el else ""),
+                description=(desc_el.get_text(" ", strip=True)[:400] if desc_el else ""),
                 url=item_url,
                 library_id="permkrai",
                 library_name="Пермская краевая библиотека",
@@ -421,7 +421,7 @@ def _search_permkrai(query: str, year_from: int | None, year_to: int | None,
         main = soup.select_one(".node__content, .field--type-text-with-summary, #content")
         if main:
             for link in main.select("a[href]"):
-                title = link.get_text(strip=True)
+                title = link.get_text(" ", strip=True)
                 if not title:
                     continue
                 query_words = [w.lower() for w in query.split() if len(w) > 3]
@@ -480,7 +480,7 @@ def _search_nlr_cart(query: str, year_from: int | None, year_to: int | None,
     seen: set[str] = set()
     count = 0
     for sep in sep_links[:20]:  # первые 20 разделителей
-        sep_title = sep.get_text(strip=True)
+        sep_title = sep.get_text(" ", strip=True)
         if not sep_title:
             continue
         query_words = [w.lower() for w in query.split() if len(w) > 3]
@@ -500,7 +500,7 @@ def _search_nlr_cart(query: str, year_from: int | None, year_to: int | None,
             cards = sep_soup.select("td, .card-entry, .record")
             for card in cards:
                 card_link = card.find("a")
-                card_title = card.get_text(strip=True) if not card_link else card_link.get_text(strip=True)
+                card_title = card.get_text(" ", strip=True) if not card_link else card_link.get_text(" ", strip=True)
                 if not card_title or len(card_title) < 5:
                     continue
                 card_url = sep_url
@@ -580,7 +580,7 @@ def _search_gpib(query: str, year_from: int | None, year_to: int | None,
             if not cells:
                 continue
             # Пропускаем строки страниц внутри документа (первая ячейка пустая)
-            num_text = cells[0].get_text(strip=True)
+            num_text = cells[0].get_text(" ", strip=True)
             if not num_text.isdigit():
                 continue
 
@@ -593,7 +593,7 @@ def _search_gpib(query: str, year_from: int | None, year_to: int | None,
                 continue
             seen.add(item_url)
 
-            title = cells[1].get_text(strip=True) if len(cells) > 1 else link.get_text(strip=True)
+            title = cells[1].get_text(" ", strip=True) if len(cells) > 1 else link.get_text(" ", strip=True)
             title = title[:200]
             if not _is_cart(title):
                 continue
@@ -625,7 +625,7 @@ def _search_gpib(query: str, year_from: int | None, year_to: int | None,
                 title_el = row.select_one("td:nth-child(2), .irbis-title, b")
                 if not title_el:
                     continue
-                title = title_el.get_text(strip=True)
+                title = title_el.get_text(" ", strip=True)
                 if not title or len(title) < 5:
                     continue
                 if not _is_cart(title):
@@ -701,14 +701,14 @@ def _search_regional_lib(query: str, year_from: int | None, year_to: int | None,
             for el in items:
                 if el.name == "a":
                     link = el
-                    title = el.get_text(strip=True)
+                    title = el.get_text(" ", strip=True)
                 else:
                     link = el.find("a")
                     if not link:
                         continue
                     title_el = el.select_one("h2, h3, .title, strong, b")
-                    title = (title_el.get_text(strip=True) if title_el
-                             else link.get_text(strip=True))
+                    title = (title_el.get_text(" ", strip=True) if title_el
+                             else link.get_text(" ", strip=True))
 
                 if not title or len(title) < 5:
                     continue
@@ -731,7 +731,7 @@ def _search_regional_lib(query: str, year_from: int | None, year_to: int | None,
                            if el.name != "a" else None)
                 yield LibraryRecord(
                     title=title, year_from=y_from, year_to=y_to,
-                    description=(desc_el.get_text(strip=True)[:400]
+                    description=(desc_el.get_text(" ", strip=True)[:400]
                                  if desc_el else ""),
                     url=item_url, library_id=lib_id, library_name=lib_name,
                 )
@@ -772,7 +772,7 @@ def _search_smolensk_lib(query: str, year_from: int | None, year_to: int | None,
             resp = _get(heritage_url, delay=2.0)
             soup = BeautifulSoup(resp.text, "lxml")
             for link in soup.select("a[href]"):
-                title = link.get_text(strip=True)
+                title = link.get_text(" ", strip=True)
                 if not title or not _is_cart(title):
                     continue
                 href = link.get("href", "")
@@ -809,7 +809,7 @@ def _search_yaroslavl_lib(query: str, year_from: int | None, year_to: int | None
             resp = _get(yaroslavika_url, delay=2.0)
             soup = BeautifulSoup(resp.text, "lxml")
             for link in soup.select("a[href]"):
-                title = link.get_text(strip=True)
+                title = link.get_text(" ", strip=True)
                 if not title:
                     continue
                 words = [w.lower() for w in query.split() if len(w) > 3]
@@ -893,7 +893,7 @@ def _search_etomesto(query: str, year_from: int | None, year_to: int | None,
 
         seen: set[str] = set()
         for link in links:
-            title = link.get_text(strip=True)
+            title = link.get_text(" ", strip=True)
             if not title or len(title) < 5:
                 continue
             if not _is_cart(title):
@@ -925,7 +925,7 @@ def _search_etomesto(query: str, year_from: int | None, year_to: int | None,
             resp = _get(search_url, params={"q": query}, delay=2.0)
             soup = BeautifulSoup(resp.text, "lxml")
             for link in soup.select("a[href*='/map']"):
-                title = link.get_text(strip=True)
+                title = link.get_text(" ", strip=True)
                 if not title:
                     continue
                 href = link.get("href", "")
@@ -964,7 +964,7 @@ def _search_retromap(query: str, year_from: int | None, year_to: int | None,
         soup = BeautifulSoup(resp.text, "lxml")
         seen: set[str] = set()
         for link in soup.select("a[href]"):
-            title = link.get_text(strip=True)
+            title = link.get_text(" ", strip=True)
             if not title or len(title) < 5:
                 continue
             title_low = title.lower()
@@ -1031,7 +1031,7 @@ def _search_southklad(query: str, year_from: int | None, year_to: int | None,
         soup = BeautifulSoup(resp.text, "lxml")
         seen: set[str] = set()
         for link in soup.select("a[href]"):
-            title = link.get_text(strip=True)
+            title = link.get_text(" ", strip=True)
             if not title or len(title) < 5:
                 continue
             if not _is_cart(title):
@@ -1095,8 +1095,8 @@ def _search_qmap(query: str, year_from: int | None, year_to: int | None,
             if not link:
                 continue
             title_el = item.select_one("h2, h3, .entry-title, .title")
-            title = (title_el.get_text(strip=True) if title_el
-                     else link.get_text(strip=True))
+            title = (title_el.get_text(" ", strip=True) if title_el
+                     else link.get_text(" ", strip=True))
             if not title:
                 continue
             title_low = title.lower()
