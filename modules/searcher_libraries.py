@@ -100,10 +100,19 @@ def _search_prlib(query: str, year_from: int | None, year_to: int | None,
     for page in range(1, max_pages + 1):
         params: dict = {"text": query, "page": page}
         try:
-            resp = _get(PRLIB_SEARCH, params=params)
+            resp = _get(PRLIB_SEARCH, params=params, delay=3.0)
         except Exception as e:
             print(f"[ПрБ] Ошибка стр.{page}: {e}")
-            break
+            if page == 1:
+                print("[ПрБ] Повтор через 15 сек...")
+                time.sleep(15)
+                try:
+                    resp = _get(PRLIB_SEARCH, params=params, delay=0)
+                except Exception as e2:
+                    print(f"[ПрБ] Повтор не удался: {e2}")
+                    raise  # пробрасываем наверх — run_search.py не считает как «пустой»
+            else:
+                break
 
         soup = BeautifulSoup(resp.text, "lxml")
 
@@ -368,103 +377,143 @@ def _search_aonb(query: str, year_from: int | None, year_to: int | None,
 
 
 # ── Пермская краевая библиотека (lib.permkrai.ru) ────────────────────────────
+# CMS: ELiS (lib.elibsystem.ru) — Drupal-based.
+# ВАЖНО: URL поиска — /search/fulltext/{query} (путь, не ?keys=).
+#         /search/node?keys= — устаревший Drupal 7 endpoint, здесь не работает.
+# Пагинации нет — все результаты на одной странице.
+# Геоблок: сайт недоступен с нероссийских IP — исключение пробрасывается наверх.
+# Подробнее: modules/scrapers/searcher_permkrai.py
 
-PERM_MAPS_NODE = "https://lib.permkrai.ru/node/33626"
-PERM_SEARCH = "https://lib.permkrai.ru/search/node"
+from urllib.parse import quote as _url_quote
+
+PERM_BASE = "https://lib.permkrai.ru"
+PERM_SEARCH = f"{PERM_BASE}/search/fulltext"
+_PERM_CATEGORY = "карты, схемы, планы"
+
+
+def _perm_field_value(soup: BeautifulSoup, label_re: str) -> str:
+    """Извлекает значение поля по regex-лейблу; поддерживает dl/dt/dd и div/label."""
+    pattern = re.compile(label_re, re.I)
+    # Вариант A: <dt>Лейбл</dt><dd>Значение</dd>
+    for dt in soup.find_all("dt", string=pattern):
+        dd = dt.find_next_sibling("dd")
+        if dd:
+            return dd.get_text(" ", strip=True)
+    # Вариант B: текстовый узел с лейблом → следующий sibling или .field-item
+    for el in soup.find_all(string=pattern):
+        parent = el.find_parent()
+        if not parent:
+            continue
+        nxt = parent.find_next_sibling()
+        if nxt:
+            val = nxt.get_text(" ", strip=True)
+            if val:
+                return val
+        container = parent.find_parent()
+        if container:
+            item = container.select_one(".field-item, .field-items")
+            if item:
+                return item.get_text(" ", strip=True)
+    return ""
+
+
+def _perm_field_link(soup: BeautifulSoup, label_re: str) -> str:
+    """Возвращает href первой ссылки после лейбла."""
+    pattern = re.compile(label_re, re.I)
+    for el in soup.find_all(string=pattern):
+        parent = el.find_parent()
+        if not parent:
+            continue
+        for container in (parent.find_next_sibling(), parent.find_parent()):
+            if not container:
+                continue
+            a = container.find("a", href=True)
+            if a and not a["href"].startswith("/node/"):
+                return a["href"]
+    return ""
+
 
 def _search_permkrai(query: str, year_from: int | None, year_to: int | None,
                      max_pages: int) -> Iterator[LibraryRecord]:
     """
-    Пермская краевая библиотека (lib.permkrai.ru) — Drupal CMS.
-    Поиск: /search/node?keys=<query>&page=<n>
-    Результаты: ol.search-results li.search-result
-    Дополнительно: страница коллекции карт /node/33626 просматривается отдельно.
+    Пермская краевая библиотека (lib.permkrai.ru) — ELiS CMS.
+    Поиск: /search/fulltext/{query} (путь, без параметров, без пагинации).
+    Фильтр: только категория «Карты, схемы, планы» (проверяем на странице карточки).
     """
-    if not _check(PERM_SEARCH):
-        print("[ПКББ] Сайт lib.permkrai.ru недоступен, пропуск.")
-        return
-
-    # Стандартный поиск Drupal
-    for page in range(0, max_pages):
-        params: dict = {"keys": query}
-        if page > 0:
-            params["page"] = page
-        try:
-            resp = _get(PERM_SEARCH, params=params)
-        except Exception as e:
-            print(f"[ПКББ] Ошибка стр.{page}: {e}")
-            break
-
-        soup = BeautifulSoup(resp.text, "lxml")
-        items = soup.select(
-            "li.search-result, .search-results article, .node-search-result"
-        )
-        if not items:
-            break
-
-        for item in items:
-            link = item.find("a")
-            if not link:
-                continue
-            href = link.get("href", "")
-            item_url = href if href.startswith("http") else f"https://lib.permkrai.ru{href}"
-
-            title_el = item.select_one("h3.title, h2.title, h2, h3")
-            title = (title_el.get_text(" ", strip=True) if title_el
-                     else link.get_text(" ", strip=True))
-
-            # Пропускаем явно не картографические материалы
-            if not _is_cart(title):
-                continue
-
-            date_el = item.select_one(
-                ".search-snippet-info, .submitted, .meta, .date"
-            )
-            date_raw = date_el.get_text(" ", strip=True) if date_el else ""
-            y_from, y_to = _parse_years(date_raw or title)
-
-            if not _in_year_range(y_from, y_to, year_from, year_to):
-                continue
-
-            desc_el = item.select_one(".search-snippet, .body, p")
-            yield LibraryRecord(
-                title=title,
-                year_from=y_from,
-                year_to=y_to,
-                description=(desc_el.get_text(" ", strip=True)[:400] if desc_el else ""),
-                url=item_url,
-                library_id="permkrai",
-                library_name="Пермская краевая библиотека",
-            )
-
-    # Коллекция карт: просматриваем страницу /node/33626 если запрос не дал результатов
+    search_url = f"{PERM_SEARCH}/{_url_quote(query)}"
     try:
-        resp = _get(PERM_MAPS_NODE)
-        soup = BeautifulSoup(resp.text, "lxml")
-        main = soup.select_one(".node__content, .field--type-text-with-summary, #content")
-        if main:
-            for link in main.select("a[href]"):
-                title = link.get_text(" ", strip=True)
-                if not title:
-                    continue
-                query_words = [w.lower() for w in query.split() if len(w) > 3]
-                if query_words and not any(w in title.lower() for w in query_words):
-                    continue
-                href = link.get("href", "")
-                item_url = href if href.startswith("http") else f"https://lib.permkrai.ru{href}"
-                y_from, y_to = _parse_years(title)
-                if not _in_year_range(y_from, y_to, year_from, year_to):
-                    continue
-                yield LibraryRecord(
-                    title=title,
-                    year_from=y_from,
-                    year_to=y_to,
-                    url=item_url,
-                    library_id="permkrai",
-                    library_name="Пермская краевая библиотека",
-                )
-    except Exception as e:
-        print(f"[ПКББ] Не удалось загрузить коллекцию карт: {e}")
+        resp = _get(search_url)
+    except Exception:
+        raise  # геоблок или timeout → пробрасываем в run_search.py
+
+    soup = BeautifulSoup(resp.text, "lxml")
+
+    # ELiS: ссылки на карточки — /node/{id}
+    node_re = re.compile(r"^/node/\d+$")
+    seen: set[str] = set()
+    node_urls: list[str] = []
+    for a in soup.find_all("a", href=node_re):
+        href = a["href"]
+        if href not in seen:
+            seen.add(href)
+            node_urls.append(f"{PERM_BASE}{href}")
+
+    print(f"[ПКББ] Найдено карточек: {len(node_urls)}")
+
+    for item_url in node_urls:
+        try:
+            item_resp = _get(item_url, delay=1.5)
+        except Exception as e:
+            print(f"[ПКББ] Ошибка карточки {item_url}: {e}")
+            continue
+
+        item_soup = BeautifulSoup(item_resp.text, "lxml")
+        page_text = item_soup.get_text(" ", strip=True).lower()
+
+        # Фильтр по категории
+        if _PERM_CATEGORY not in page_text:
+            continue
+
+        # Заголовок
+        title_el = (
+            item_soup.select_one("h1.page-header")
+            or item_soup.select_one("h1")
+            or item_soup.select_one(".node-title")
+        )
+        title = title_el.get_text(" ", strip=True) if title_el else ""
+        if not title:
+            continue
+
+        # Год
+        date_raw = _perm_field_value(item_soup, r"Дата публикации")
+        if not date_raw:
+            m = re.search(r"\b(1[5-9]\d{2})\b", page_text)
+            date_raw = m.group(1) if m else ""
+
+        y_from, y_to = _parse_years(date_raw)
+        if not _in_year_range(y_from, y_to, year_from, year_to):
+            continue
+
+        # Дополнительные поля
+        bibliography = _perm_field_value(item_soup, r"Библиографическое описание")
+        url_source = _perm_field_link(item_soup, r"Источник")
+        desc_el = item_soup.select_one(
+            ".field--name-body, .field-name-body, .field-name-field-description"
+        )
+        description = desc_el.get_text(" ", strip=True)[:400] if desc_el else ""
+        if not description and bibliography:
+            description = bibliography[:400]
+
+        yield LibraryRecord(
+            title=title,
+            year_from=y_from,
+            year_to=y_to,
+            description=description,
+            url=item_url,
+            library_id="permkrai",
+            library_name="Пермская краевая библиотека",
+            extra={"bibliography": bibliography, "url_source": url_source},
+        )
 
 
 # ── РНБ: каталог карт (nlr.ru) ───────────────────────────────────────────────
@@ -1196,3 +1245,4 @@ def search(query: str, year_from: int | None = None, year_to: int | None = None,
             yield from fn(query, year_from, year_to, max_pages)
         except Exception as e:
             print(f"[libraries:{lib_id}] Необработанная ошибка: {e}")
+            raise  # пробрасываем в run_search.py — там не считается как «пустой»
