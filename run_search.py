@@ -23,6 +23,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 from territories import GUBERNIA_QUERIES, UYEZD_QUERIES
 from triggers import PRIMARY
+import registry  # единый движок источников (modules/registry.py)
 
 # ── Параметры поиска (согласованы с пользователем) ───────────────────────────
 YEAR_FROM = 1700
@@ -37,11 +38,15 @@ SOURCE_PRIORITY = [
     "gpib",         # ГПИБ России — электронная библиотека (elib.shpl.ru)
     "prlib",        # Президентская библиотека
     "nlr_cart",     # РНБ, отдел карт
-    "permkrai",     # Пермская краевая библиотека
-    "kaluga_lib",   # Калужская библиотека им. Белинского
-    "smolensk_lib", # Смоленская ОУНБ им. Твардовского
-    "yaroslavl_lib",# Ярославская ОУНБ / Ярославика
+    "permkrai",     # Пермская краевая библиотека (новый скрапер, ELiS)
+    "kaluga_lib",   # Калужская библиотека им. Белинского (новый скрапер, IRBIS64)
+    "smolensk_lib", # Смоленская ОУНБ (новый скрапер, обход коллекции — walk)
+    "rsl",          # РГБ — search.rsl.ru, фильтр KGR
+    "neb",          # НЭБ — агрегатор, запускать последним (дубли с РГБ/ГПИБ → dedup)
 ]
+
+# Онлайн-каталога нет — скрепер невозможен:
+# "yaroslavl_lib" — rlib.yar.ru/search не работает, каталог недоступен
 
 # Временно отключены (searcher требует переработки):
 # "rgo"    — нет текстового поиска, нужен обход каталога
@@ -116,27 +121,26 @@ def main():
         print("[ПРЕДУПРЕЖДЕНИЕ] Без --run-dir и --resume результаты пойдут в папку с датой "
               "(gitignored). Для облака добавь --run-dir cloud.")
 
-    # Импортируем searcher и health-монитор после добавления modules/ в путь
-    import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        "searcher_libraries",
-        Path(__file__).parent / "modules" / "searcher_libraries.py"
-    )
-    searcher_lib = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(searcher_lib)
-
     from archive_health import ArchiveHealth
     health = ArchiveHealth()
 
-    # Список источников
+    # Список источников — все проходят через реестр движка
     if args.source == "all":
         sources = SOURCE_PRIORITY
     else:
         sources = [s.strip() for s in args.source.split(",")]
+    unknown = [s for s in sources if s not in registry.SOURCES]
+    if unknown:
+        print(f"[ОШИБКА] Неизвестные источники: {', '.join(unknown)}")
+        print(f"Доступны: {', '.join(registry.available())}")
+        sys.exit(1)
 
     # Территории и ключевые слова
+    # walk-источники (обход коллекции) — 1 комбинация вместо территория×слово
     territories = build_territories()
-    total_combos = len(territories) * len(KEYWORDS) * len(sources)
+    combos_per_query_source = len(territories) * len(KEYWORDS)
+    total_combos = sum(1 if registry.is_walk(s) else combos_per_query_source
+                       for s in sources)
 
     # Папка запуска: --run-dir (фиксированная, для облака) → --resume → новая
     base_out = Path(__file__).parent / "output"
@@ -163,11 +167,11 @@ def main():
     if done:
         print(f"[Резюме] Уже выполнено: {len(done)} комбинаций")
         # Показать прогресс по источникам
-        combos_per_source = len(territories) * len(KEYWORDS)
         for src in sources:
+            src_total = 1 if registry.is_walk(src) else combos_per_query_source
             src_done = sum(1 for k in done if k.endswith(f"|{src}"))
-            pct = int(src_done / combos_per_source * 100)
-            status = "✓ завершён" if src_done == combos_per_source else f"{src_done}/{combos_per_source} ({pct}%)"
+            pct = int(src_done / src_total * 100)
+            status = "✓ завершён" if src_done >= src_total else f"{src_done}/{src_total} ({pct}%)"
             print(f"  {src:<15} {status}")
         print()
     out_file    = run_dir / "results.csv"       # уверенные источники
@@ -204,7 +208,27 @@ def main():
             writer.writerow(COLS)
             rv_writer.writerow(COLS + ["Решение", "Комментарий"])  # заполнит review.py
 
-        MAX_EMPTY = 3  # после стольких пустых ответов подряд — пропускаем источник
+        def process_records(rec_iter, source_id, territory, keyword):
+            """Раскладывает записи по results/review. Возвращает (pos, doubtful)."""
+            pos = doubtful = 0
+            for rec in rec_iter:
+                row = [
+                    source_id, territory, keyword,
+                    rec.title, rec.year_from, rec.year_to,
+                    rec.url, (rec.description or "")[:200],
+                ]
+                if classify(rec.title) == "positive":
+                    writer.writerow(row)
+                    csvf.flush()
+                    pos += 1
+                else:  # doubtful (negative уже отфильтрован в searcher)
+                    rv_writer.writerow(row + ["", ""])
+                    rvf.flush()
+                    doubtful += 1
+            return pos, doubtful
+
+        MAX_EMPTY = 5   # пустых ответов подряд в одной территории → пропуск источника
+        MAX_ERRORS = 5  # сетевых ошибок подряд (timeout/connection) → пропуск источника
 
         for source_id in sources:
             if max_combos_reached:
@@ -213,10 +237,46 @@ def main():
             print(f"Источник: {source_id.upper()}")
             print(f"{'─'*50}")
 
-            consecutive_empty = 0
+            # walk-источник: один обход коллекции вместо перебора комбинаций
+            if registry.is_walk(source_id):
+                combo_key = f"__walk__|{source_id}"
+                combo_n += 1
+                if combo_key in done:
+                    print(f"[{source_id}] обход уже выполнен (чекпоинт)")
+                    continue
+                print(f"[{combo_n}/{total_combos}] {source_id} | обход коллекции", end=" ... ")
+                if args.dry_run:
+                    print("(dry-run, пропуск)")
+                    done.add(combo_key)
+                    continue
+                try:
+                    pos, doubtful = process_records(
+                        registry.search(source_id, "",
+                                        year_from=YEAR_FROM, year_to=YEAR_TO,
+                                        max_pages=args.max_pages),
+                        source_id, "(вся коллекция)", "(обход)")
+                    total_found += pos + doubtful
+                    if pos + doubtful > 0:
+                        health.ok(source_id)
+                    else:
+                        health.issue(source_id, "Обход коллекции: 0 записей")
+                    print(f"{pos} уверенных, {doubtful} сомнительных")
+                except Exception as e:
+                    health.issue(source_id, f"Обход коллекции → {e}")
+                    print(f"ОШИБКА: {e}")
+                done.add(combo_key)
+                save_checkpoint(done, run_dir)
+                new_combos_done += 1
+                if args.max_combos > 0 and new_combos_done >= args.max_combos:
+                    print(f"\n[GitHub Actions] Лимит {args.max_combos} комбинаций достигнут — останавливаемся")
+                    max_combos_reached = True
+                continue
+
             skip_source = False
+            consecutive_errors = 0  # счётчик сетевых ошибок (отдельно от пустых)
 
             for territory, gub_label in territories:
+                consecutive_empty = 0  # сбрасываем при смене территории
                 if skip_source or max_combos_reached:
                     break
                 for keyword in KEYWORDS:
@@ -235,29 +295,12 @@ def main():
                         continue
 
                     try:
-                        pos = doubtful = 0
-                        for rec in searcher_lib.search(
-                            query,
-                            year_from=YEAR_FROM,
-                            year_to=YEAR_TO,
-                            libraries=source_id,
-                            max_pages=args.max_pages,
-                        ):
-                            row = [
-                                source_id, territory, keyword,
-                                rec.title, rec.year_from, rec.year_to,
-                                rec.url, (rec.description or "")[:200],
-                            ]
-                            verdict = classify(rec.title)
-                            if verdict == "positive":
-                                writer.writerow(row)
-                                csvf.flush()
-                                pos += 1
-                            else:  # doubtful (negative уже отфильтрован в searcher)
-                                rv_writer.writerow(row + ["", ""])
-                                rvf.flush()
-                                doubtful += 1
-                            total_found += 1
+                        pos, doubtful = process_records(
+                            registry.search(source_id, query,
+                                            year_from=YEAR_FROM, year_to=YEAR_TO,
+                                            max_pages=args.max_pages),
+                            source_id, territory, keyword)
+                        total_found += pos + doubtful
 
                         if pos + doubtful > 0:
                             health.ok(source_id)
@@ -277,6 +320,16 @@ def main():
                         err_msg = str(e)
                         health.issue(source_id, f"Запрос: {query!r} → {err_msg}")
                         print(f"ОШИБКА: {err_msg}")
+                        consecutive_errors += 1
+                        if consecutive_errors >= MAX_ERRORS:
+                            print(f"\n[{source_id}] {MAX_ERRORS} сетевых ошибок подряд — сайт недоступен, пропускаем")
+                            health.issue(source_id, f"Сайт недоступен: {MAX_ERRORS} timeout/connection подряд")
+                            skip_source = True
+                            done.add(combo_key)
+                            save_checkpoint(done, run_dir)
+                            break
+                    else:
+                        consecutive_errors = 0  # сбрасываем при успешном запросе
 
                     done.add(combo_key)
                     save_checkpoint(done, run_dir)
