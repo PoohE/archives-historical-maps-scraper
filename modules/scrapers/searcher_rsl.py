@@ -157,9 +157,14 @@ class RslRecord:
 def _make_session() -> requests.Session:
     s = requests.Session()
     s.headers.update(HEADERS)
-    # Инициализируем сессию (cookies)
     try:
-        s.get("https://search.rsl.ru/ru/search", timeout=15)
+        r = s.get("https://search.rsl.ru/ru/search", timeout=15)
+        m = re.search(r'<meta name="csrf-token" content="([^"]+)"', r.text)
+        if m:
+            token = m.group(1)
+            # Yii2 принимает CSRF и через заголовок, и через поле формы
+            s.headers["X-Csrf-Token"] = token
+            s._csrf_token = token  # сохраняем для подстановки в data
     except Exception:
         pass
     return s
@@ -273,6 +278,7 @@ def search_query(session: requests.Session,
 
     for page in range(1, max_pages + 1):
         data = {
+            "_csrf":                           getattr(session, "_csrf_token", ""),
             "SearchFilterForm[elfunds]":       "0",
             "SearchFilterForm[nofile]":        "0",
             "SearchFilterForm[accessFree]":    "1" if free_only else "0",
