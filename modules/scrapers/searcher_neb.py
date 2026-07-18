@@ -70,12 +70,11 @@ https://rusneb.ru
 """
 
 import re
-import sys
 import time
 import argparse
 from dataclasses import dataclass, field
 from typing import Iterator
-from urllib.parse import urlencode, quote
+from urllib.parse import quote
 
 import requests
 from bs4 import BeautifulSoup
@@ -116,11 +115,21 @@ class NebRecord:
     library_name: str = "Национальная электронная библиотека (НЭБ)"
 
 
-def _get(url: str, params: dict | None = None, delay: float = 2.0) -> requests.Response:
-    time.sleep(delay)
-    resp = requests.get(url, params=params, headers=HEADERS, timeout=30)
-    resp.raise_for_status()
-    return resp
+def _get(url: str, params: dict | None = None, delay: float = 2.0,
+         retries: int = 3) -> requests.Response:
+    # rusneb.ru периодически отдаёт ReadTimeout — без повторов падает весь прогон
+    last_exc: Exception | None = None
+    for attempt in range(1, retries + 1):
+        time.sleep(delay * attempt)
+        try:
+            resp = requests.get(url, params=params, headers=HEADERS, timeout=60)
+            resp.raise_for_status()
+            return resp
+        except (requests.exceptions.Timeout,
+                requests.exceptions.ConnectionError) as exc:
+            last_exc = exc
+            print(f"[НЭБ] Попытка {attempt}/{retries} не удалась: {exc}")
+    raise last_exc
 
 
 def _parse_years(text: str) -> tuple[int | None, int | None]:
@@ -172,7 +181,7 @@ def _get_search_urls(query: str, filter_maps: bool = True,
 
         # Ссылки на карточки — href вида /catalog/{id}/
         found_on_page = 0
-        catalog_re = re.compile(r"^/catalog/\d+/?$")
+        catalog_re = re.compile(r"^/catalog/[^/]+/?$")
         seen = set(urls)
         for a in soup.find_all("a", href=catalog_re):
             href = a["href"].rstrip("/")
@@ -353,8 +362,13 @@ def main() -> None:
         for kw in KEYWORDS:
             for territory in TERRITORIES:
                 q = f"{kw} {territory}"
-                for rec in search(q, args.year_from, args.year_to,
-                                  filter_maps=not args.no_filter):
+                try:
+                    recs = list(search(q, args.year_from, args.year_to,
+                                       filter_maps=not args.no_filter))
+                except Exception as exc:
+                    print(f"[НЭБ] Запрос «{q}» пропущен: {exc}")
+                    continue
+                for rec in recs:
                     key = rec.title + str(rec.year_from)
                     if key not in seen:
                         seen.add(key)
