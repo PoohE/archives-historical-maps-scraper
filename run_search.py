@@ -230,10 +230,13 @@ def main():
 
         for source_idx, source_id in enumerate(sources, 1):
             if max_combos_reached:
+                print(f"\n✅ max_combos ({args.max_combos}) достигнут — все остальные источники пропускаются")
                 break
+
             print(f"\n{'─'*50}")
             print(f"[{source_idx}/{len(sources)}] Источник: {source_id.upper()}")
             print(f"{'─'*50}")
+            sys.stdout.flush()  # гарантировать вывод перед выполнением
 
             # walk-источник: один обход коллекции вместо перебора комбинаций
             if registry.is_walk(source_id):
@@ -272,6 +275,8 @@ def main():
 
             skip_source = False
             consecutive_errors = 0  # счётчик сетевых ошибок (отдельно от пустых)
+
+            print(f"[{source_id}] Начинаем поиск по {len(territories)} территориям")
 
             for territory, gub_label in territories:
                 consecutive_empty = 0  # сбрасываем при смене территории
@@ -338,6 +343,9 @@ def main():
                         break
                     time.sleep(0.5)  # небольшая пауза между комбинациями
 
+            print(f"[{source_id}] Завершили источник (skip_source={skip_source}, max_combos_reached={max_combos_reached})")
+
+    print(f"\n[ИТОГО] Обработано источников: {source_idx}/{len(sources)}")
     # Сохраняем статусы доступности источников в Notion
     if not args.dry_run and not args.no_notion:
         health.save()
