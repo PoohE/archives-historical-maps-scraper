@@ -82,13 +82,13 @@ from bs4 import BeautifulSoup
 BASE_URL = "https://rusneb.ru"
 SEARCH_URL = f"{BASE_URL}/search/"
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from territories import TERRITORIES
+
 KEYWORDS = ["карта", "план", "атлас", "съёмка", "чертёж"]
-TERRITORIES = [
-    "Калужская губерния", "Калужское наместничество",
-    "Пермская губерния", "Пермское наместничество",
-    "Смоленская губерния", "Смоленское наместничество",
-    "Ярославская губерния", "Ярославское наместничество",
-]
+# TERRITORIES: 49 территорий (4 губ + 4 наместничества + 41 уезд, загружены в Notion 2026-07-18)
 
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "

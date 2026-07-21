@@ -50,18 +50,25 @@ Rusmarc: rusmarc.php?numer=<N>&database=karpgr18  (popup, структуриро
 """
 
 import re
+import sys
 import time
 import argparse
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Iterator
 
 import requests
 from bs4 import BeautifulSoup
 
+# Импортировать TERRITORIES из modules/territories.py
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from territories import TERRITORIES
+
 BASE_URL   = "https://nlr.ru"
 SEARCH_URL = "https://nlr.ru/rlin/kartogr18.php"
 
-GEO_TERMS = ["Калуж", "Перм", "Смолен", "Яросла"]
+# Список расширен: вместо 4 губерний теперь 49 территорий (с уездами)
+GEO_TERMS = TERRITORIES
 
 HEADERS = {
     "User-Agent": (

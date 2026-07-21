@@ -60,12 +60,17 @@ import re
 import sys
 import time
 import argparse
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Iterator
 from urllib.parse import quote
 
 import requests
 from bs4 import BeautifulSoup
+
+# Импортировать TERRITORIES из modules/territories.py
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from territories import TERRITORIES
 
 BASE_URL = "https://archives.permkrai.ru"
 
@@ -82,7 +87,8 @@ def _fund_list_url(archive: str) -> str:
 # Ключевые слова для поиска картографических фондов по названию
 MAP_FUND_KEYWORDS = ["карт", "план", "чертеж", "геодез", "топограф", "съемк", "межев"]
 
-TERRITORY_KEYS = ["Калуж", "Перм", "Смолен", "Яросл"]
+# Расширенный список территорий (49 вместо 4)
+TERRITORY_KEYS = TERRITORIES
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
