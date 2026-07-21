@@ -1,32 +1,40 @@
-# Результаты локальных запусков (большие файлы, не нужны в git)
-output/20*/
-
-# Оставляем облачный прогресс — нужен для GitHub Actions
-!output/cloud/
-
 # Python
 __pycache__/
-*.pyc
-*.pyo
-.venv/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
 venv/
+ENV/
+*.egg-info/
+.eggs/
 
-# Секреты
-.env
-*.env
-
-# Временные файлы
-*.tmp
+# Logs and outputs
 *.log
+output/
+*.csv
+checkpoint.json
 
-# Резервные копии Windows (имена с «копия с компьютера»)
-*копия*
-*HUAWEI*
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# Старые локальные результаты (не для облака)
-output/search_*.csv
-output/review_*.csv
-output/search_checkpoint.json
-output/*.txt
-kaluga.csv
-perm.csv
+# OS
+.DS_Store
+Thumbs.db
+
+# Sensitive
+.env
+*.key
+*.pem
+credentials.json
+
+# Notion
+*.notion
+
+# Large files
+*.zip
+*.tar.gz

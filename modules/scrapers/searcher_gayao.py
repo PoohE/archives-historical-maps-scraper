@@ -42,20 +42,22 @@ import re
 import sys
 import time
 import argparse
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Iterator
 
 import requests
 from bs4 import BeautifulSoup
 
+# Импортировать TERRITORIES из modules/territories.py
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from territories import TERRITORIES
+
 BASE_URL   = "https://af.yar-archives.ru"
 SEARCH_URL = f"{BASE_URL}/archive/search"
 
 KEYWORDS = ["карта", "план", "атлас", "съёмка", "чертёж"]
-TERRITORIES = [
-    "Ярославская губерния", "Ярославское наместничество",
-    "Калужская губерния", "Пермская губерния", "Смоленская губерния",
-]
+# TERRITORIES: 49 территорий (4 губ + 4 наместничества + 41 уезд, загружены в Notion 2026-07-18)
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
