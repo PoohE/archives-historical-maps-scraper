@@ -100,6 +100,8 @@ def main():
     parser = argparse.ArgumentParser(description="Поиск по 4 губерниям ИГИС")
     parser.add_argument("--dry-run", action="store_true",
                         help="Только показать результаты, не писать в Notion")
+    parser.add_argument("--no-notion", action="store_true",
+                        help="Выполнить поиск и сохранить в CSV, но НЕ писать в Notion")
     parser.add_argument("--source", default="all",
                         help=f"Источники через запятую: {', '.join(SOURCE_PRIORITY)} или all")
     parser.add_argument("--resume", action="store_true",
@@ -341,8 +343,10 @@ def main():
                     time.sleep(0.5)  # небольшая пауза между комбинациями
 
     # Сохраняем статусы доступности источников в Notion
-    if not args.dry_run:
+    if not args.dry_run and not args.no_notion:
         health.save()
+    elif args.no_notion:
+        print("[--no-notion] Пропуск записи в Notion (CSV сохранён)")
 
     print(f"\n{'='*60}")
     print(f"ИТОГО: найдено {total_found} записей")
