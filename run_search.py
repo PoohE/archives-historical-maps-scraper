@@ -15,6 +15,7 @@ import csv
 import json
 import sys
 import time
+import signal
 from datetime import datetime
 from pathlib import Path
 
@@ -238,6 +239,17 @@ def main():
             print(f"{'─'*50}")
             sys.stdout.flush()  # гарантировать вывод перед выполнением
 
+            # Проверка инициализации источника
+            try:
+                print(f"[{source_id}] Инициализация...")
+                test_result = next(registry.search(source_id, "test", max_pages=1), None)
+                print(f"[{source_id}] ✅ Инициализирован успешно")
+            except Exception as e:
+                print(f"[{source_id}] ❌ ОШИБКА инициализации: {e}")
+                health.issue(source_id, f"Инициализация: {e}")
+                continue  # пропустить этот источник и перейти к следующему
+            sys.stdout.flush()
+
             # walk-источник: один обход коллекции вместо перебора комбинаций
             if registry.is_walk(source_id):
                 combo_key = f"__walk__|{source_id}"
@@ -298,11 +310,14 @@ def main():
                         continue
 
                     try:
-                        pos, doubtful = process_records(
-                            registry.search(source_id, query,
-                                            year_from=YEAR_FROM, year_to=YEAR_TO,
-                                            max_pages=args.max_pages),
-                            source_id, territory, keyword)
+                        try:
+                            search_results = registry.search(source_id, query,
+                                                            year_from=YEAR_FROM, year_to=YEAR_TO,
+                                                            max_pages=args.max_pages)
+                            pos, doubtful = process_records(search_results, source_id, territory, keyword)
+                        except StopIteration:
+                            pos, doubtful = 0, 0  # пустой результат — нормально
+
                         total_found += pos + doubtful
 
                         if pos + doubtful > 0:
@@ -319,14 +334,16 @@ def main():
                                 save_checkpoint(done, run_dir)
                                 break
                         print(f"{pos} уверенных, {doubtful} сомнительных")
+                    except KeyboardInterrupt:
+                        raise  # Ctrl+C — пробросить выше
                     except Exception as e:
-                        err_msg = str(e)
+                        err_msg = str(e)[:100]  # обрезать длинные ошибки
                         health.issue(source_id, f"Запрос: {query!r} → {err_msg}")
                         print(f"ОШИБКА: {err_msg}")
                         consecutive_errors += 1
                         if consecutive_errors >= MAX_ERRORS:
-                            print(f"\n[{source_id}] {MAX_ERRORS} сетевых ошибок подряд — сайт недоступен, пропускаем")
-                            health.issue(source_id, f"Сайт недоступен: {MAX_ERRORS} timeout/connection подряд")
+                            print(f"\n[{source_id}] {MAX_ERRORS} ошибок подряд — пропускаем источник")
+                            health.issue(source_id, f"Источник недоступен: {MAX_ERRORS} ошибок подряд")
                             skip_source = True
                             done.add(combo_key)
                             save_checkpoint(done, run_dir)
