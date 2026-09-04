@@ -198,43 +198,58 @@ def _parse_content_html(html: str, debug: bool = False) -> list[RslRecord]:
     record_re = re.compile(r"^/ru/record/")
     seen_urls: set[str] = set()
 
-    # Находим все заголовки записей
+    # В актуальной выдаче ссылка /ru/record/... называется «Описание»,
+    # а заголовок находится в соседнем блоке .rsl-item-nocover-descr.
+    # Поэтому сначала поднимаемся к контейнеру всей записи, а не к блоку
+    # кнопок (старый селектор class_=row ошибочно выбирал именно его).
     for title_link in soup.find_all("a", href=record_re):
         url = "https://search.rsl.ru" + title_link["href"].rstrip("/") + "/"
         if url in seen_urls:
             continue
         seen_urls.add(url)
 
-        title = title_link.get_text(" ", strip=True)
-
-        # Ищем родительский контейнер записи
-        container = title_link.find_parent("div", class_=re.compile(r"row|result|item"))
+        container = title_link.find_parent(
+            "div", class_=lambda value: value and "search-container" in value
+        )
+        if not container:
+            container = title_link.find_parent(
+                "div", class_=lambda value: value and "search-item" in value
+            )
         if not container:
             container = title_link.find_parent("li") or title_link.find_parent("div")
 
+        title_node = container.select_one(".rsl-item-nocover-descr, .js-item-maininfo") if container else None
+        title = title_node.get_text(" ", strip=True) if title_node else title_link.get_text(" ", strip=True)
+
         text = container.get_text("\n", strip=True) if container else title
 
-        # Шифр хранения
-        shelfmark = ""
-        shelfmark_m = re.search(r"Шифр\s+хранения\s*\n?([^\n]+(?:\n[^\n]+)?)", text)
-        if shelfmark_m:
-            shelfmark = shelfmark_m.group(1).strip()
+        # В актуальной выдаче значения полей находятся в паре блоков
+        # .rsl-item-otherinfo-item-name / .rsl-item-otherinfo-item-value.
+        # Извлечение по подписи не даёт соседним полям попасть в шифр.
+        def field_value(label: str) -> str:
+            if not container:
+                return ""
+            for block in container.select(".rsl-item-otherinfo-item"):
+                name = block.select_one(".rsl-item-otherinfo-item-name")
+                value = block.select_one(".rsl-item-otherinfo-item-value")
+                if name and value and name.get_text(" ", strip=True) == label:
+                    return value.get_text(" ", strip=True)
+            return ""
+
+        shelfmark = field_value("Шифр хранения")
 
         # Только картографический фонд
         if shelfmark and not _is_kgr(shelfmark):
             continue
 
         # Тема
-        subject_m = re.search(r"Тема\s*\n([^\n]{20,})", text)
-        subject = subject_m.group(1).strip() if subject_m else ""
+        subject = field_value("Тема")
 
         # Общие примечания
-        notes_m = re.search(r"Общие примечания\s*\n([^\n]+)", text)
-        notes = notes_m.group(1).strip() if notes_m else ""
+        notes = field_value("Общие примечания")
 
         # Содержание
-        content_m = re.search(r"Содержание\s*\n([^\n]+)", text)
-        content_note = content_m.group(1).strip() if content_m else ""
+        content_note = field_value("Содержание")
 
         # Год
         y_from, y_to = _parse_years(text)
@@ -250,6 +265,8 @@ def _parse_content_html(html: str, debug: bool = False) -> list[RslRecord]:
 
         records.append(RslRecord(
             title=title,
+            author=(container.select_one(".js-item-authorinfo").get_text(" ", strip=True)
+                    if container and container.select_one(".js-item-authorinfo") else ""),
             year_from=y_from,
             year_to=y_to,
             shelfmark=shelfmark,
@@ -279,19 +296,18 @@ def search_query(session: requests.Session,
     for page in range(1, max_pages + 1):
         data = {
             "_csrf":                           getattr(session, "_csrf_token", ""),
-            "SearchFilterForm[elfunds]":       "0",
-            "SearchFilterForm[nofile]":        "0",
-            "SearchFilterForm[accessFree]":    "1" if free_only else "0",
-            "SearchFilterForm[accessLimited]": "0",
             "SearchFilterForm[pubyearfrom]":   str(year_from) if year_from else "",
             "SearchFilterForm[pubyearto]":     str(year_to)   if year_to   else "",
             "SearchFilterForm[sortby]":        "default",
             "SearchFilterForm[page]":          str(page),
-            "SearchFilterForm[inDodRoom]":     "0",
             "SearchFilterForm[search]":        query,
-            "SearchFilterForm[fulltext]":      "",
-            "SearchFilterForm[updatedFields]": "search",
+            "SearchFilterForm[fulltext]":      "0",
         }
+        # Yii2/jQuery сериализует updatedFields как массив. Передача строки
+        # (как в старой версии) приводит к 400 или к пустой выдаче.
+        data["SearchFilterForm[updatedFields][]"] = "search"
+        if free_only:
+            data["SearchFilterForm[accessFree]"] = "1"
 
         time.sleep(2.0)
         resp = session.post(
@@ -315,9 +331,6 @@ def search_query(session: requests.Session,
             break
 
         records = _parse_content_html(content_html, debug=(debug and page == 1))
-
-        if not records and page > 1:
-            break
 
         for rec in records:
             # Постфильтр по годам (если year_from/to не переданы в запрос)

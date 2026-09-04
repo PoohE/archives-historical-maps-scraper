@@ -43,22 +43,9 @@ import argparse
 from dataclasses import dataclass
 from typing import Iterator
 
-import ssl
 import requests
-import urllib3
-from requests.adapters import HTTPAdapter
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from bs4 import BeautifulSoup
 
-
-class _NoSSLVerifyAdapter(HTTPAdapter):
-    """Отключает проверку SSL-сертификата на уровне urllib3 (обход Windows CA)."""
-    def init_poolmanager(self, *args, **kwargs):
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        kwargs["ssl_context"] = ctx
-        super().init_poolmanager(*args, **kwargs)
 
 SEARCH_URL = "https://online.archives.ru/search/"
 BASE_URL   = "https://online.archives.ru"
@@ -97,8 +84,6 @@ class RosarchiveRecord:
 def _make_session() -> requests.Session:
     s = requests.Session()
     s.headers.update(HEADERS)
-    s.verify = False
-    s.mount("https://", _NoSSLVerifyAdapter())
     return s
 
 
