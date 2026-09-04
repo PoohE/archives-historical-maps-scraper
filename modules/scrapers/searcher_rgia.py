@@ -93,6 +93,7 @@ HEADERS = {
 
 # Шаг пагинации — кол-во записей на странице (уточнить после теста)
 PAGE_SIZE = 20
+SIMPLE_COMPONENT_ID = "72425"
 
 
 @dataclass
@@ -201,6 +202,32 @@ def _parse_object_page(html: str, obj_url: str, debug: bool = False) -> RgiaReco
     )
 
 
+def _parse_object_json(data: dict, obj_url: str) -> RgiaRecord:
+    """Парсит актуальный JSON, который выдаёт /ajax/obj/{id}/{index}."""
+    attrs = {str(a.get("name", "")).strip(): str(a.get("text", "")).strip()
+             for a in data.get("attributes", []) if a.get("name")}
+    title = (data.get("title") or attrs.get("Наименование") or
+             attrs.get("Название") or "").strip()
+    start = attrs.get("Начальный год документов", "")
+    end = attrs.get("Конечный год документов", "")
+    y_from, _ = _parse_years(start)
+    _, y_to = _parse_years(end)
+    if y_from is None and y_to is None:
+        y_from, y_to = _parse_years(" ".join(attrs.values()))
+    number = attrs.get("Номер фонда", "")
+    fund_code = f"Ф. {number}" if number else attrs.get("Шифр", "")
+    return RgiaRecord(
+        title=title,
+        fund_code=fund_code,
+        subject_group=str(data.get("objectTypeName") or attrs.get("Вид фонда", "")),
+        year_from=y_from,
+        year_to=y_to,
+        bib_source=attrs.get("Библиографический источник", "")[:200],
+        notes=attrs.get("Аннотация", "")[:200],
+        url=obj_url,
+    )
+
+
 def _parse_result_links(html: str, debug: bool = False) -> list[str]:
     """
     Извлекает ссылки на объекты из страницы результатов поиска.
@@ -215,7 +242,9 @@ def _parse_result_links(html: str, debug: bool = False) -> list[str]:
     links: list[str] = []
     seen: set[str] = set()
 
-    for a in soup.find_all("a", href=re.compile(r"/object/\d+")):
+    # Навигация сайта содержит множество /object/... без title. В выдаче
+    # результатов title заполнен описанием объекта, поэтому фильтруем по нему.
+    for a in soup.find_all("a", href=re.compile(r"/object/\d+"), title=True):
         href: str = a["href"]
         url = BASE_URL + href if href.startswith("/") else href
         if url not in seen:
@@ -223,6 +252,28 @@ def _parse_result_links(html: str, debug: bool = False) -> list[str]:
             links.append(url)
 
     return links
+
+
+def _extract_search_index(html: str) -> str:
+    m = re.search(r'data-search-index="(\d+)"', html)
+    return m.group(1) if m else ""
+
+
+def _fetch_object(session: requests.Session, obj_url: str,
+                  search_index: str, debug: bool = False) -> RgiaRecord:
+    """Получает карточку через JSON endpoint, с HTML fallback."""
+    obj_id_m = re.search(r"/object/(\d+)", obj_url)
+    if search_index and obj_id_m:
+        api_url = f"{BASE_URL}/ajax/obj/{obj_id_m.group(1)}/{search_index}"
+        r = session.get(api_url, params={"children": "false"}, timeout=20)
+        r.raise_for_status()
+        try:
+            return _parse_object_json(r.json(), obj_url)
+        except ValueError:
+            pass
+    r = session.get(obj_url, timeout=20)
+    r.raise_for_status()
+    return _parse_object_page(r.text, obj_url, debug=debug)
 
 
 def _count_total_pages(html: str) -> int:
@@ -246,6 +297,8 @@ def search_simple(session: requests.Session, query: str,
             "p0.v":  query,
             "p0.i":  "n",
             "p0.d":  str(offset),
+            "p0.c":  str(PAGE_SIZE),
+            "p0.a":  SIMPLE_COMPONENT_ID,
         }
         time.sleep(2.0)
         try:
@@ -256,6 +309,7 @@ def search_simple(session: requests.Session, query: str,
             break
 
         links = _parse_result_links(resp.text, debug=(debug and offset == 0))
+        search_index = _extract_search_index(resp.text)
         if offset == 0:
             total_pages = _count_total_pages(resp.text)
             print(f"[РГИА] {query!r}: {total_pages} стр. результатов")
@@ -264,15 +318,13 @@ def search_simple(session: requests.Session, query: str,
             break
 
         for obj_url in links:
-            time.sleep(1.5)
+            time.sleep(1.0)
             try:
-                r = session.get(obj_url, timeout=20)
-                r.raise_for_status()
+                rec = _fetch_object(session, obj_url, search_index,
+                                    debug=(debug and offset == 0))
             except Exception as e:
                 print(f"[РГИА] Ошибка {obj_url}: {e}")
                 continue
-
-            rec = _parse_object_page(r.text, obj_url, debug=(debug and offset == 0))
 
             if year_from and rec.year_to and rec.year_to < year_from:
                 continue
