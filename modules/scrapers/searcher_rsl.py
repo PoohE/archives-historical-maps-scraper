@@ -170,6 +170,29 @@ def _make_session() -> requests.Session:
     return s
 
 
+def _post_with_retry(session: requests.Session, data: dict,
+                     attempts: int = 2) -> requests.Response:
+    """POST с ограниченной повторной попыткой при временном сбое TLS/сети."""
+    last_error: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            response = session.post(
+                SEARCH_URL,
+                params={"language": "ru"},
+                data=data,
+                timeout=30,
+            )
+            response.raise_for_status()
+            return response
+        except requests.RequestException as exc:
+            last_error = exc
+            if attempt < attempts:
+                wait = 5 * attempt
+                print(f"[РГБ] Временная ошибка POST; повтор через {wait} с")
+                time.sleep(wait)
+    raise last_error or RuntimeError("неизвестная ошибка POST РГБ")
+
+
 def _parse_years(text: str) -> tuple[int | None, int | None]:
     nums = re.findall(r"\b(1[5-9]\d{2}|20[012]\d)\b", text)
     if not nums:
@@ -310,13 +333,7 @@ def search_query(session: requests.Session,
             data["SearchFilterForm[accessFree]"] = "1"
 
         time.sleep(2.0)
-        resp = session.post(
-            SEARCH_URL,
-            params={"language": "ru"},
-            data=data,
-            timeout=30,
-        )
-        resp.raise_for_status()
+        resp = _post_with_retry(session, data)
         j = resp.json()
 
         total_hits = j.get("TotalHits", 0)
