@@ -53,6 +53,7 @@ import re
 import sys
 import time
 import argparse
+import csv
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Iterator
@@ -290,9 +291,21 @@ def main() -> None:
     parser.add_argument("--geo", default="",
                         help="Географический заголовок (Калуж / Перм / Смолен / Яросла)")
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--csv", default="",
+                        help="Записать структурированный результат в CSV")
     args = parser.parse_args()
 
     results = list(search(args.geo, args.debug))
+    if args.csv:
+        fields = ["record_num", "shelfmark", "description", "year_from",
+                  "year_to", "rusmarc_url", "geo_query", "url",
+                  "library_id", "library_name"]
+        with open(args.csv, "w", encoding="utf-8-sig", newline="") as fh:
+            writer = csv.DictWriter(fh, fieldnames=fields)
+            writer.writeheader()
+            for rec in results:
+                writer.writerow({name: getattr(rec, name) for name in fields})
+        print(f"[РНБ карты] CSV: {args.csv}")
     print(f"\n[РНБ карты] Итого: {len(results)}")
     for r in results:
         yr = f"{r.year_from or '?'}–{r.year_to or '?'}"
