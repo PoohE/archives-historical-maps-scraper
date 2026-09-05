@@ -10,19 +10,22 @@ http://opisi.garf.su — онлайн-опись
   Ф.1829 «КОЛЛЕКЦИЯ ПЛАНОВ, КАРТ, ЧЕРТЕЖЕЙ И "РАППОРТОВ"»
   Оп.1 — Дела постоянного хранения. 1854–1917 гг.
 
-URL описи (v=5 = просмотр списка дел):
-  http://opisi.garf.su/default.asp?base=garf&menu=2&v=5
-    &node=42&cf=68131968&co=11262697&fond=2012
+URL фонда (v=2 = список описей):
+  http://opisi.garf.su/default.asp?base=garf&menu=2&v=2
+    &node=42&fond=2012
+
+URL описи (v=5 = просмотр списка дел) формируется сайтом из актуального
+идентификатора описи; старые значения cf/co больше не используются.
 
 Параметры:
   base   = garf
   menu   = 2
   v      = 5   (просмотр списка дел описи)
   node   = 42
-  cf     = 68131968  (ID каталога фонда)
-  co     = 11262697  (ID каталога описи)
   fond   = 2012      (внутренний ID Ф.1829)
-  page   = N         (пагинация, 20 дел на страницу?)
+  opis   = 6965      (ID Оп.1; извлекается из страницы фонда)
+  cd     = 18392829 (контекст списка; извлекается из страницы описи)
+  cp     = N         (номер страницы, 20 дел на страницу)
 
 Формат записей (из скрина):
   1829 1 1  | Карта Польши XVII в. и 1862 г.           | (год)
@@ -68,10 +71,8 @@ SEARCH_URL = f"{BASE_URL}/default.asp"
 FOND_1829_PARAMS = {
     "base": "garf",
     "menu": "2",
-    "v":    "5",
+    "v":    "2",
     "node": "42",
-    "cf":   "68131968",
-    "co":   "11262697",
     "fond": "2012",
 }
 
@@ -101,6 +102,23 @@ def _make_session() -> requests.Session:
     s = requests.Session()
     s.headers.update(HEADERS)
     return s
+
+
+def _get_with_retry(session: requests.Session, params: dict, attempts: int = 2) -> requests.Response:
+    """GET с одной повторной попыткой при временном обрыве старого сервера ГАРФ."""
+    last_error: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            response = session.get(SEARCH_URL, params=params, timeout=25)
+            response.raise_for_status()
+            return response
+        except requests.RequestException as exc:
+            last_error = exc
+            if attempt < attempts:
+                wait = 5 * attempt
+                print(f"[ГАРФ] Временная ошибка запроса; повтор через {wait} с")
+                time.sleep(wait)
+    raise last_error or RuntimeError("неизвестная ошибка запроса ГАРФ")
 
 
 def _parse_years(text: str) -> tuple[int | None, int | None]:
@@ -169,15 +187,19 @@ def _parse_delo_page(html: str, debug: bool = False) -> tuple[list[dict], int]:
 
     # Определяем последнюю страницу пагинации
     last_page = 1
-    for a in soup.find_all("a", href=re.compile(r"page=\d+|pages=\d+", re.I)):
+    for a in soup.find_all("a", href=re.compile(r"page=\d+|pages=\d+|cp=\d+", re.I)):
         m = re.search(r"page[s]?=(\d+)", a["href"], re.I)
+        if not m:
+            m = re.search(r"(?:^|[?&])cp=(\d+)", a["href"], re.I)
         if m:
             n = int(m.group(1))
             if n > last_page:
                 last_page = n
-    # Если пагинация через GET-параметр &p= или &stpage=
-    for a in soup.find_all("a", href=re.compile(r"[?&](p|stpage|pg)=\d+", re.I)):
+    # Если пагинация через GET-параметр &p=, &stpage= или &cp=
+    for a in soup.find_all("a", href=re.compile(r"[?&](p|stpage|pg|cp)=\d+", re.I)):
         m = re.search(r"[?&](?:p|stpage|pg)=(\d+)", a["href"], re.I)
+        if not m:
+            m = re.search(r"[?&]cp=(\d+)", a["href"], re.I)
         if m:
             n = int(m.group(1))
             if n > last_page:
@@ -191,24 +213,52 @@ def iter_fond(session: requests.Session, geo_filter: list[str] | None = None,
               all_records: bool = False, debug: bool = False) -> Iterator[GarfRecord]:
     """Обходит все страницы Ф.1829 Оп.1, фильтрует по территории и годам."""
 
+    # Сначала получаем актуальный ID Оп.1 из страницы фонда.
+    try:
+        fond_resp = _get_with_retry(session, FOND_1829_PARAMS)
+        fond_soup = BeautifulSoup(fond_resp.text, "lxml")
+        opisi_href = None
+        for link in fond_soup.find_all("a", href=True):
+            href = link["href"]
+            text = link.get_text(" ", strip=True).lower()
+            if "v=5" in href and "opis=" in href and ("дела постоянного хранения" in text or "оп.1" in text):
+                opisi_href = href
+                break
+        if not opisi_href:
+            raise RuntimeError("не найдена ссылка на Оп.1 в странице фонда")
+        from urllib.parse import parse_qs, urlparse
+        discovered = {k: v[-1] for k, v in parse_qs(urlparse(opisi_href).query).items()}
+        FOND_1829_PARAMS.update({k: discovered[k] for k in ("opis", "fond", "node", "base", "menu") if k in discovered})
+        FOND_1829_PARAMS["v"] = "5"
+    except Exception as e:
+        print(f"[ГАРФ] Не удалось определить актуальную Оп.1: {e}")
+        return
+
     page = 1
     max_page = 1  # уточняется после первого запроса
     found_total = 0
+    context_id = ""
 
     while page <= max_page:
         params = dict(FOND_1829_PARAMS)
+        if context_id:
+            params["cd"] = context_id
         if page > 1:
-            params["page"] = str(page)
+            params["cp"] = str(page)
 
         time.sleep(2.0)
         try:
-            resp = session.get(SEARCH_URL, params=params, timeout=25)
-            resp.raise_for_status()
+            resp = _get_with_retry(session, params)
         except Exception as e:
             print(f"[ГАРФ] Ошибка стр.{page}: {e}")
             break
 
         raw, discovered_last = _parse_delo_page(resp.text, debug=(debug and page == 1))
+
+        if not context_id:
+            hidden = BeautifulSoup(resp.text, "lxml").find("input", attrs={"name": "cd"})
+            if hidden and hidden.get("value"):
+                context_id = hidden["value"]
 
         if discovered_last > max_page:
             max_page = discovered_last
