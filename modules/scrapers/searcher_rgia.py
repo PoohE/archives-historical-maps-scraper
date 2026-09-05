@@ -66,6 +66,7 @@ import re
 import sys
 import time
 import argparse
+import csv
 from dataclasses import dataclass
 from typing import Iterator
 
@@ -428,6 +429,8 @@ def main() -> None:
     parser.add_argument("--year-to",   type=int, default=1920, dest="year_to")
     parser.add_argument("--all-queries", action="store_true", dest="all_queries")
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--csv", default="",
+                        help="Записать структурированный результат в CSV")
     args = parser.parse_args()
 
     session = _make_session()
@@ -451,6 +454,17 @@ def main() -> None:
         results = list(search_simple(
             session, args.query, args.year_from, args.year_to, args.debug
         ))
+
+    if args.csv:
+        fields = ["title", "fund_code", "subject_group", "year_from",
+                  "year_to", "bib_source", "notes", "url", "library_id",
+                  "library_name"]
+        with open(args.csv, "w", encoding="utf-8-sig", newline="") as fh:
+            writer = csv.DictWriter(fh, fieldnames=fields)
+            writer.writeheader()
+            for rec in results:
+                writer.writerow({name: getattr(rec, name) for name in fields})
+        print(f"[РГИА] CSV: {args.csv}")
 
     print(f"\n[РГИА] Итого: {len(results)}")
     for r in results:
