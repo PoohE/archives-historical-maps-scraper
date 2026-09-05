@@ -103,6 +103,7 @@ import re
 import sys
 import time
 import argparse
+import csv
 from dataclasses import dataclass, field
 from typing import Iterator
 
@@ -262,7 +263,9 @@ def _parse_content_html(html: str, debug: bool = False) -> list[RslRecord]:
         shelfmark = field_value("Шифр хранения")
 
         # Только картографический фонд
-        if shelfmark and not _is_kgr(shelfmark):
+        # Без шифра нельзя подтвердить принадлежность к картографическому
+        # фонду: широкая выдача РГБ содержит книги, журналы и справочники.
+        if not _is_kgr(shelfmark):
             continue
 
         # Тема
@@ -315,6 +318,7 @@ def search_query(session: requests.Session,
     """
     max_pages = 100
     found_total = 0
+    seen_urls: set[str] = set()
 
     for page in range(1, max_pages + 1):
         data = {
@@ -333,7 +337,11 @@ def search_query(session: requests.Session,
             data["SearchFilterForm[accessFree]"] = "1"
 
         time.sleep(2.0)
-        resp = _post_with_retry(session, data)
+        try:
+            resp = _post_with_retry(session, data)
+        except requests.RequestException as exc:
+            print(f"[РГБ] Прогон прерван после страницы {page - 1}: {exc}")
+            break
         j = resp.json()
 
         total_hits = j.get("TotalHits", 0)
@@ -350,6 +358,9 @@ def search_query(session: requests.Session,
         records = _parse_content_html(content_html, debug=(debug and page == 1))
 
         for rec in records:
+            if rec.url in seen_urls:
+                continue
+            seen_urls.add(rec.url)
             # Постфильтр по годам (если year_from/to не переданы в запрос)
             if year_from and rec.year_to and rec.year_to < year_from:
                 continue
@@ -390,6 +401,8 @@ def main() -> None:
                         help="Все ключевые слова × территории")
     parser.add_argument("--debug", action="store_true",
                         help="Дамп HTML первой страницы")
+    parser.add_argument("--csv", default="",
+                        help="Записать структурированный результат в CSV")
     args = parser.parse_args()
 
     if args.all_queries:
@@ -414,6 +427,16 @@ def main() -> None:
 
     results = list(search(args.query, args.year_from, args.year_to,
                           args.free_only, args.debug))
+    if args.csv:
+        fields = ["title", "author", "year_from", "year_to", "shelfmark",
+                  "subject", "notes", "content_note", "url", "access",
+                  "library_id", "library_name"]
+        with open(args.csv, "w", encoding="utf-8-sig", newline="") as fh:
+            writer = csv.DictWriter(fh, fieldnames=fields)
+            writer.writeheader()
+            for rec in results:
+                writer.writerow({name: getattr(rec, name) for name in fields})
+        print(f"[РГБ] CSV: {args.csv}")
     print(f"\n[РГБ] Карт KGR: {len(results)}")
     for r in results:
         yr = f"{r.year_from or '?'}–{r.year_to or '?'}"
