@@ -126,11 +126,16 @@ def search_rgada(query: str, max_pages: int = 5, delay: float = 1.0,
                 break
             records, has_next = _parse_page(response.text, debug=(debug and page == 1))
             print(f"[РГАДА] {field}={query!r}, стр.{page}: {len(records)} описей")
+            added = 0
             for record in records:
                 if record.url not in seen:
                     seen.add(record.url)
+                    added += 1
                     yield record
-            if not has_next or not records:
+            # Некоторые страницы РГАДА сохраняют ссылку «следующая» после
+            # последней страницы и возвращают уже виденные строки. Без этого
+            # условия полный проход бессмысленно повторяет один и тот же набор.
+            if not has_next or not records or added == 0:
                 break
             time.sleep(delay)
 

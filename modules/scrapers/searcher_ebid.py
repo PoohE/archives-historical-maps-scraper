@@ -57,7 +57,8 @@
 import re
 import time
 import argparse
-from dataclasses import dataclass, field
+import csv
+from dataclasses import asdict, dataclass
 from typing import Iterator
 
 import requests
@@ -306,12 +307,14 @@ def main() -> None:
     parser.add_argument("--year-to",   type=int, default=1920, dest="year_to")
     parser.add_argument("--max-pages", type=int, default=20,   dest="max_pages")
     parser.add_argument("--all-queries", action="store_true", dest="all_queries")
+    parser.add_argument("--csv", help="Путь для CSV-экспорта результатов")
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
     if args.all_queries:
         session = _make_session()
         seen: set[str] = set()
+        exported: list[EbidRecord] = []
         total = 0
         for ter in TERRITORIES:
             for kw in ("карта", "план", "атлас"):
@@ -320,10 +323,17 @@ def main() -> None:
                                         max_pages=5):
                     if rec.url not in seen:
                         seen.add(rec.url)
+                        exported.append(rec)
                         total += 1
                         yr = f"{rec.year_from or '?'}–{rec.year_to or '?'}"
                         print(f"  {yr:<12} [{rec.archive[:15]}] {rec.title[:50]}")
         print(f"\n[ЭБИД] Итого уникальных карт: {total}")
+        if args.csv:
+            with open(args.csv, "w", encoding="utf-8-sig", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=list(asdict(EbidRecord()).keys()), lineterminator="\n")
+                writer.writeheader()
+                writer.writerows(asdict(row) for row in exported)
+            print(f"[ЭБИД] CSV: {args.csv}")
         return
 
     if not args.query:
@@ -332,6 +342,12 @@ def main() -> None:
     results = list(search(args.query, args.year_from, args.year_to,
                           args.max_pages, args.debug))
     print(f"\n[ЭБИД] Карт: {len(results)}")
+    if args.csv:
+        with open(args.csv, "w", encoding="utf-8-sig", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(asdict(EbidRecord()).keys()), lineterminator="\n")
+            writer.writeheader()
+            writer.writerows(asdict(row) for row in results)
+        print(f"[ЭБИД] CSV: {args.csv}")
     for r in results:
         yr = f"{r.year_from or '?'}–{r.year_to or '?'}"
         print(f"  {yr:<12} [{r.fund_code[:18]}] {r.title[:50]}")
