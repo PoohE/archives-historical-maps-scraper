@@ -611,6 +611,75 @@ GPIB_OPAC_PARAMS = {
 }
 
 
+def _parse_gpib_node(url: str) -> dict[str, object]:
+    """Читает метаданные карточки ГПИБ и связанные издания.
+
+    Карточка карты хранит связь в строке «Издание (для иллюстраций)».
+    Возвращаем только публичные библиографические поля и URL; авторизацию и
+    содержимое страниц просмотра не запрашиваем.
+    """
+    resp = _get(url, delay=2.0)
+    soup = BeautifulSoup(resp.text, "lxml")
+    meta: dict[str, str] = {}
+    links: list[dict[str, str]] = []
+    for row in soup.select("tr[class*=record_of_type]"):
+        cells = row.find_all("td")
+        if len(cells) < 2:
+            continue
+        label = cells[0].get_text(" ", strip=True)
+        value_cell = cells[1]
+        value = value_cell.get_text(" ", strip=True)
+        if label:
+            meta[label] = value
+        if "Издание" in label:
+            for a in value_cell.select("a[href]"):
+                href = a.get("href", "")
+                if href.startswith("/") and not href.startswith("/ru/"):
+                    href = "/ru" + href
+                links.append({
+                    "title": a.get_text(" ", strip=True),
+                    "url": href if href.startswith("http") else f"http://elib.shpl.ru{href}",
+                })
+    h1 = soup.find("h1")
+    # Просмотрщик ГПИБ встраивает идентификаторы страниц в JSON на карточке.
+    # Кнопка «Загрузить изображение» обращается к /pages/{id}/zooms/{n};
+    # сохраняем максимальный опубликованный масштаб как ссылку на изображение.
+    page_ids = [int(x) for x in re.findall(r'"pages":\[\{"id":(\d+)', resp.text)]
+    zooms_match = re.search(r'"project_zoom_nums":\[([^]]+)\]', resp.text)
+    zooms = [int(x) for x in re.findall(r"\d+", zooms_match.group(1))] if zooms_match else [0]
+    image_urls = [
+        f"http://elib.shpl.ru/pages/{page_id}/zooms/{max(zooms)}"
+        for page_id in page_ids
+    ]
+    return {
+        "title": h1.get_text(" ", strip=True) if h1 else "",
+        "meta": meta,
+        "edition_links": links,
+        "image_urls": image_urls,
+    }
+
+
+def _parse_gpib_edition(url: str) -> dict[str, object]:
+    """Извлекает библиографические параметры связанного издания ГПИБ."""
+    data = _parse_gpib_node(url)
+    meta = data.get("meta", {})
+    if not isinstance(meta, dict):
+        meta = {}
+    year_from, year_to = _parse_years(meta.get("Год издания", ""))
+    if not year_from:
+        year_from, year_to = _parse_years(str(data.get("title", "")))
+    return {
+        "url": url,
+        "title": data.get("title", ""),
+        "author": meta.get("Сведения об ответственности", "") or meta.get("Автор", ""),
+        "year_from": year_from,
+        "year_to": year_to,
+        "description": meta.get("Библиографическое описание", ""),
+        "type": meta.get("Тип издания", ""),
+        "publisher": meta.get("Издательство", ""),
+    }
+
+
 def _search_gpib(query: str, year_from: int | None, year_to: int | None,
                  max_pages: int) -> Iterator[LibraryRecord]:
     """
@@ -670,13 +739,47 @@ def _search_gpib(query: str, year_from: int | None, year_to: int | None,
             if not _is_cart(title):
                 continue
 
+            # Поля карты и связь с публикацией находятся на странице узла, а
+            # не в строке поисковой выдачи. Обогащаем запись один раз.
+            detail: dict[str, object] = {}
+            try:
+                detail = _parse_gpib_node(item_url)
+            except Exception as exc:
+                print(f"[ГПИБ] Карточка {item_url} не обогащена: {exc}")
+
+            meta = detail.get("meta", {}) if isinstance(detail, dict) else {}
+            if not isinstance(meta, dict):
+                meta = {}
             y_from, y_to = _parse_years(title)
+            if not y_from:
+                y_from, y_to = _parse_years(str(meta.get("Издание (для иллюстраций)", "")))
+            edition_links = detail.get("edition_links", []) if isinstance(detail, dict) else []
+            image_urls = detail.get("image_urls", []) if isinstance(detail, dict) else []
+            editions: list[dict[str, object]] = []
+            for ed in edition_links if isinstance(edition_links, list) else []:
+                if not isinstance(ed, dict) or not ed.get("url"):
+                    continue
+                try:
+                    editions.append(_parse_gpib_edition(str(ed["url"])))
+                except Exception as exc:
+                    print(f"[ГПИБ] Связанное издание {ed.get('url')} не прочитано: {exc}")
+                    editions.append(ed)
+
+            description = "; ".join(p for p in (
+                f"Тип издания: {meta.get('Тип издания')}" if meta.get("Тип издания") else "",
+                f"Издание: {meta.get('Издание (для иллюстраций)')}" if meta.get("Издание (для иллюстраций)") else "",
+            ) if p)
             if not _in_year_range(y_from, y_to, year_from, year_to):
                 continue
 
             yield LibraryRecord(
                 title=title, year_from=y_from, year_to=y_to,
-                url=item_url, library_id="gpib", library_name="ГПИБ России",
+                description=description, url=item_url, library_id="gpib",
+                library_name="ГПИБ России",
+                extra={"record_type": meta.get("Тип издания", "карта"),
+                       "edition_links": editions,
+                       "image_urls": image_urls,
+                       "gpib_meta": meta},
             )
             found += 1
 
