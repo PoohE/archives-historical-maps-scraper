@@ -270,6 +270,13 @@ def parse_card_html(html: str, url: str, debug: bool = False) -> NebRecord | Non
                 if a:
                     meta_links[key] = a["href"]
 
+    # У раскрывающихся полей НЭБ в текст попадает служебная подпись «Ещё
+    # Свернуть». Это элемент интерфейса, а не часть библиографического значения.
+    meta = {
+        key: re.sub(r"\s*(?:Ещё|Еще)\s+Свернуть\b.*$", "", value).strip()
+        for key, value in meta.items()
+    }
+
     # Год
     year_raw = (
         meta.get("Год издания", "")
@@ -293,15 +300,25 @@ def parse_card_html(html: str, url: str, debug: bool = False) -> NebRecord | Non
     viewer_url = ""
     for a in soup.select("a[href]"):
         href = a["href"]
-        if any(x in href for x in ["/viewer/", "/read/", "/download/", "iiif"]):
+        if any(x in href.lower() for x in [
+            "/viewer/", "/read/", "/download/", "getfiles.php", "downloadqr.php", "iiif"
+        ]):
             viewer_url = href if href.startswith("http") else BASE_URL + href
             break
+    if not access and viewer_url:
+        access = "открытый (ссылка на просмотр/скачивание)"
 
     # Описание
     desc_el = soup.select_one(
         ".card__description, .annotation, .description, [class*=annotation]"
     )
     description = desc_el.get_text(" ", strip=True)[:400] if desc_el else ""
+    content_note = meta.get("Примечание содержания", "")
+    catalog = meta.get("Каталог", "")
+    if content_note:
+        description = "; ".join(p for p in (description, f"Примечание содержания: {content_note}") if p)
+    if catalog:
+        description = "; ".join(p for p in (description, f"Каталог: {catalog}") if p)
 
     # Коллекции
     collections = [
@@ -311,12 +328,12 @@ def parse_card_html(html: str, url: str, debug: bool = False) -> NebRecord | Non
 
     return NebRecord(
         title=title,
-        author=meta.get("Автор", "") or meta.get("Составитель", ""),
+        author=meta.get("Автор", "") or meta.get("Автор(ы)", "") or meta.get("Составитель", ""),
         year_from=y_from,
         year_to=y_to,
         place=meta.get("Место издания", "") or meta.get("Место", ""),
         publisher=meta.get("Издательство", "") or meta.get("Издатель", ""),
-        source_lib=source_lib,
+        source_lib=source_lib or meta.get("Библиотека", ""),
         access=access,
         url=url,
         url_viewer=viewer_url,

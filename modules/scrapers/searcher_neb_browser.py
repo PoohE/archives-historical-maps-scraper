@@ -27,7 +27,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from bs4 import BeautifulSoup
-from playwright.sync_api import Browser, Page, Playwright, sync_playwright
+from playwright.sync_api import Browser, Error as PlaywrightError, Page, Playwright, sync_playwright
 
 HERE = Path(__file__).resolve()
 MODULES = HERE.parent.parent
@@ -90,6 +90,18 @@ def _check_response(page: Page, response, url: str) -> None:
         raise AccessBlocked(f"НЭБ заблокировал браузерный запрос: status={status}, title={title!r}, url={url}")
 
 
+def _goto(page: Page, url: str):
+    """Переход с классификацией Chromium-ошибки 403 как access_stop."""
+    try:
+        return page.goto(url, wait_until="domcontentloaded", timeout=60000)
+    except PlaywrightError as exc:
+        title = page.title()
+        h1 = page.locator("h1").first.text_content(timeout=2000) if page.locator("h1").count() else ""
+        if "ERR_HTTP_RESPONSE_CODE_FAILURE" in str(exc) or "Отключите VPN" in (title or "") or "Отключите VPN" in (h1 or ""):
+            raise AccessBlocked(f"НЭБ заблокировал браузерный запрос: {exc}; title={title!r}, url={url}") from exc
+        raise
+
+
 def _catalog_links(html: str) -> list[str]:
     soup = BeautifulSoup(html, "lxml")
     links: list[str] = []
@@ -150,7 +162,7 @@ def run_query(page: Page, query: str, territory: str, max_pages: int,
     links: list[str] = []
     for page_no in range(1, max_pages + 1):
         url = _search_url(query, page_no)
-        response = page.goto(url, wait_until="domcontentloaded", timeout=60000)
+        response = _goto(page, url)
         page.wait_for_timeout(1800)
         _check_response(page, response, url)
         html = page.content()
@@ -168,7 +180,7 @@ def run_query(page: Page, query: str, territory: str, max_pages: int,
     retrieval_date = datetime.now().astimezone().date().isoformat()
     source_run = raw_dir.parent.name
     for idx, url in enumerate(links, 1):
-        response = page.goto(url, wait_until="domcontentloaded", timeout=60000)
+        response = _goto(page, url)
         page.wait_for_timeout(900)
         _check_response(page, response, url)
         html = page.content()
