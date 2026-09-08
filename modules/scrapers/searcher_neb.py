@@ -207,13 +207,14 @@ def _get_search_urls(query: str, filter_maps: bool = True,
     return urls
 
 
-def _parse_card(url: str, debug: bool = False) -> NebRecord | None:
+def parse_card_html(html: str, url: str, debug: bool = False) -> NebRecord | None:
+    """Извлекает запись из уже полученного HTML карточки НЭБ.
+
+    Отдельная функция нужна браузерному fallback: обычный ``requests``-клиент
+    НЭБ сейчас получает 403, а чистый Chromium может открыть публичную
+    карточку. HTML передаётся как данные; cookies и профиль браузера не нужны.
     """
-    Парсит страницу карточки документа на rusneb.ru/catalog/{id}/.
-    Возвращает None если документ не является картой.
-    """
-    resp = _get(url, delay=1.5)
-    soup = BeautifulSoup(resp.text, "lxml")
+    soup = BeautifulSoup(html, "lxml")
 
     if debug:
         print(f"\n─── HTML карточки {url} (5000 символов) ───")
@@ -251,6 +252,19 @@ def _parse_card(url: str, debug: bool = False) -> NebRecord | None:
             value = row.select_one(".card-info__value, .value, dd")
             if label and value:
                 key = label.get_text(strip=True).rstrip(":")
+                meta[key] = value.get_text(" ", strip=True)
+                a = value.find("a", href=True)
+                if a:
+                    meta_links[key] = a["href"]
+
+    # Актуальная разметка НЭБ (2026): таблица cards-table__row.
+    # В ней подпись и значение находятся в соседних div, а не в dt/dd.
+    if not meta:
+        for row in soup.select(".cards-table__row"):
+            label = row.select_one(".cards-table__left")
+            value = row.select_one(".cards-table__right")
+            if label and value:
+                key = label.get_text(" ", strip=True).rstrip(":")
                 meta[key] = value.get_text(" ", strip=True)
                 a = value.find("a", href=True)
                 if a:
@@ -309,6 +323,12 @@ def _parse_card(url: str, debug: bool = False) -> NebRecord | None:
         description=description,
         collections=collections,
     )
+
+
+def _parse_card(url: str, debug: bool = False) -> NebRecord | None:
+    """Парсит карточку через обычный HTTP-клиент (legacy-путь)."""
+    resp = _get(url, delay=1.5)
+    return parse_card_html(resp.text, url, debug=debug)
 
 
 def search(query: str,
