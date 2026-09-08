@@ -6,6 +6,7 @@ import argparse
 import csv
 import hashlib
 import json
+from datetime import date
 from pathlib import Path
 
 FIELDS = [
@@ -48,6 +49,8 @@ def main() -> None:
     parser.add_argument("--rgada", action="append", default=[], metavar="ТЕРРИТОРИЯ=CSV", help="Выгрузка РГАДА")
     parser.add_argument("--output", required=True, help="Новый CSV")
     parser.add_argument("--summary", required=True, help="JSON-сводка")
+    parser.add_argument("--retrieval-date", default=date.today().isoformat(),
+                        help="Дата сборки производного слоя (YYYY-MM-DD)")
     args = parser.parse_args()
 
     rows: list[dict[str, str]] = []
@@ -76,7 +79,7 @@ def main() -> None:
     counts: dict[str, int] = {}
     for row in result:
         counts[row["source"]] = counts.get(row["source"], 0) + 1
-    summary = {"schema": FIELDS, "output": output.name, "rows_input": len(rows), "rows_unique_by_url": len(result), "counts_by_source": counts, "sha256": digest, "retrieval_date": "2026-09-07", "limitations": ["РГАДА даёт карточки описей, а не отдельные дела; map-like фильтрация выполняется отдельно."]}
+    summary = {"schema": FIELDS, "output": output.name, "rows_input": len(rows), "rows_unique_by_url": len(result), "counts_by_source": counts, "sha256": digest, "retrieval_date": args.retrieval_date, "limitations": ["РГАДА даёт карточки описей, а не отдельные дела; map-like фильтрация выполняется отдельно."]}
     Path(args.summary).write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 

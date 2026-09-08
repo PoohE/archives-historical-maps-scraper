@@ -58,7 +58,8 @@ import re
 import sys
 import time
 import argparse
-from dataclasses import dataclass
+import csv
+from dataclasses import asdict, dataclass
 from typing import Iterator
 
 import requests
@@ -320,6 +321,7 @@ def main() -> None:
     parser.add_argument("--year-to",   type=int, default=1920, dest="year_to")
     parser.add_argument("--all",  action="store_true",
                         help="Не фильтровать по территории, вернуть все дела")
+    parser.add_argument("--csv", help="Путь для CSV-экспорта")
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
@@ -336,6 +338,12 @@ def main() -> None:
     ))
 
     print(f"\n[ГАРФ] Подходящих дел: {len(results)}")
+    if args.csv:
+        with open(args.csv, "w", encoding="utf-8-sig", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(asdict(GarfRecord()).keys()), lineterminator="\n")
+            writer.writeheader()
+            writer.writerows(asdict(row) for row in results)
+        print(f"[ГАРФ] CSV: {args.csv}")
     for r in results:
         yr = f"{r.year_from or '?'}–{r.year_to or '?'}"
         print(f"  1829/1/{r.delo_num:<6} {yr:<12} {r.title[:60]}")
