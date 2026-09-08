@@ -768,6 +768,11 @@ def _search_gpib(query: str, year_from: int | None, year_to: int | None,
             description = "; ".join(p for p in (
                 f"Тип издания: {meta.get('Тип издания')}" if meta.get("Тип издания") else "",
                 f"Издание: {meta.get('Издание (для иллюстраций)')}" if meta.get("Издание (для иллюстраций)") else "",
+                "Связанные издания URL: " + "; ".join(
+                    str(ed.get("url", "")) for ed in editions if ed.get("url")
+                ) if editions else "",
+                "Изображение URL: " + "; ".join(str(u) for u in image_urls if u)
+                if isinstance(image_urls, list) and image_urls else "",
             ) if p)
             if not _in_year_range(y_from, y_to, year_from, year_to):
                 continue
