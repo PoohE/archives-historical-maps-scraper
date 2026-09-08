@@ -39,6 +39,10 @@ from scrapers.searcher_neb import NebRecord, parse_card_html  # noqa: E402
 BASE_URL = "https://rusneb.ru"
 SEARCH_URL = f"{BASE_URL}/search/"
 KEYWORDS = ["карта", "план", "атлас", "съёмка", "чертёж"]
+TARGET_GUBERNIAS = [
+    "Калужская губерния", "Пермская губерния",
+    "Смоленская губерния", "Ярославская губерния",
+]
 CATALOG_RE = re.compile(r"^/catalog/[^/]+/?$")
 CSV_FIELDS = [
     "source", "record_type", "territory", "query", "title", "year_from",
@@ -181,6 +185,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Браузерный read-only поиск карт в НЭБ")
     parser.add_argument("query", nargs="?", help="один запрос")
     parser.add_argument("--all-queries", action="store_true", help="5 ключевых слов × территории")
+    parser.add_argument("--gubernias-only", action="store_true",
+                        help="для --all-queries использовать только 4 целевые губернии")
     parser.add_argument("--output", type=Path, required=True, help="новый каталог результата")
     parser.add_argument("--max-pages", type=int, default=20)
     parser.add_argument("--max-queries", type=int, default=1,
@@ -196,9 +202,10 @@ def main() -> int:
     raw_dir.mkdir()
     manifest: list[dict] = []
     rows: list[dict[str, str]] = []
+    territories = TARGET_GUBERNIAS if args.gubernias_only else TERRITORIES
     tasks = [(args.query, "ручной запрос")] if args.query else [
         (f"{kw} {territory}", territory)
-        for kw in KEYWORDS for territory in TERRITORIES
+        for kw in KEYWORDS for territory in territories
     ]
     tasks = tasks[:args.max_queries]
 
