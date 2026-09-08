@@ -9,12 +9,9 @@ https://archive.admoblkaluga.ru — Электронный каталог
 URL поиска:  https://archive.admoblkaluga.ru/gako/search
 Метод:       GET
 Параметры:
-  p0.v            — значение поиска
-  type            — тип запроса ("simple")
-  p0.t            — (пустое)
-  p0.d            — (пустое)
-  searchObjectType — тип объекта поиска:
-                     "Doc"  → Дела   (37 для запроса "карта") ← нас интересует
+  p4.v            — заголовок дела для формы DOCUMENTS
+  type            — тип запроса ("custom")
+  searchObjectType — тип объекта поиска ("DOCUMENTS")
                      "I"    → Описи  (114 для запроса "карта")
                      "F"    → Фонды  (1)
   page            — страница (при пагинации)
@@ -41,6 +38,7 @@ import re
 import sys
 import time
 import argparse
+from urllib.parse import parse_qsl, urlparse
 from dataclasses import dataclass
 from typing import Iterator
 
@@ -128,13 +126,16 @@ def _parse_search_page(html: str, debug: bool = False) -> tuple[list[dict], bool
     if total_m:
         total = int(total_m.group(1))
 
-    # Ищем ссылки на страницы дел
-    doc_re = re.compile(r"/gako/", re.I)
+    # Карточки единиц хранения/дел имеют маршрут /gako/object/. Ссылки
+    # навигации (/gako/docs/, /gako/search и т. п.) сюда не попадают.
+    doc_re = re.compile(r"/gako/object/", re.I)
     seen: set[str] = set()
     for a in soup.find_all("a", href=doc_re):
-        href = a["href"]
+        href = a["href"].strip()
         # Пропускаем служебные ссылки
-        if any(x in href for x in ["search", "javascript", "#"]):
+        # Ссылки без query-параметров ведут на родительский фонд/опись, а не
+        # на карточку дела; они не должны попадать в каталог результатов.
+        if any(x in href for x in ["search", "javascript", "#"]) or "?" not in href:
             continue
         url = href if href.startswith("http") else BASE_URL + href
         if url in seen:
@@ -163,39 +164,76 @@ def _parse_search_page(html: str, debug: bool = False) -> tuple[list[dict], bool
                     "row_text": text,
                 })
 
+    has_dynamic_page = any(
+        re.search(r"(?:[?&])page\d*=\d+", a.get("href", ""), re.I)
+        for a in soup.find_all("a", href=True)
+    )
     has_next = bool(
         soup.find("a", string=re.compile(r"Следующ|»", re.I))
         or soup.find("a", rel="next")
         or soup.select_one("a.next, li.next > a")
+        or has_dynamic_page
     )
 
     return records, has_next, total
+
+
+def _next_page_params(html: str, current_page: int) -> dict[str, str]:
+    """Извлекает динамический параметр пагинации вида page12924=2."""
+    soup = BeautifulSoup(html, "lxml")
+    for link in soup.find_all("a", href=True):
+        query = dict(parse_qsl(urlparse(link["href"]).query))
+        for key, value in query.items():
+            if re.fullmatch(r"page\d*", key, re.I) and value.isdigit() and int(value) > current_page:
+                return {key: value}
+    return {}
 
 
 def search_query(session: requests.Session, query: str,
                  year_from: int | None = None, year_to: int | None = None,
                  search_type: str = "Doc", debug: bool = False) -> Iterator[GakoRecord]:
     page = 1
+    page_params: dict[str, str] = {}
     found_total = 0
     seen: set[str] = set()
 
     while True:
-        params: dict[str, str | int] = {
-            "p0.v":           query,
-            "type":           "simple",
-            "p0.t":           "",
-            "p0.d":           "",
-            "searchObjectType": search_type,
-        }
+        # В актуальной форме ГАКО поиск по заголовку дела — это custom-поиск
+        # DOCUMENTS (поле p4.v). Старый simple+p0.v возвращает только оболочку
+        # страницы без карточек результатов.
+        if search_type.lower() in {"doc", "document", "documents"}:
+            params: dict[str, str | int] = {
+                "type": "custom",
+                "searchObjectType": "DOCUMENTS",
+                "p4.v": query,
+                "p4.t": "",
+                "p4.d": "",
+                "p4.c": "12",
+                "p4.a": "13354",
+            }
+        else:
+            params = {
+                "p0.v": query,
+                "type": "simple",
+                "p0.t": "",
+                "p0.d": "",
+                "searchObjectType": search_type,
+            }
+        params.update(page_params)
         if page > 1:
             params["page"] = page
 
-        time.sleep(2.0)
-        try:
-            resp = session.get(SEARCH_URL, params=params, timeout=25)
-            resp.raise_for_status()
-        except Exception as e:
-            print(f"[ГАКО] Ошибка стр.{page}: {e}")
+        resp = None
+        for attempt in range(1, 3):
+            time.sleep(2.0 if attempt == 1 else 5.0)
+            try:
+                resp = session.get(SEARCH_URL, params=params, timeout=25)
+                resp.raise_for_status()
+                break
+            except Exception as e:
+                if attempt == 2:
+                    print(f"[ГАКО] Ошибка стр.{page} после 2 попыток: {e}")
+        if resp is None:
             break
 
         raw, has_next, total = _parse_search_page(resp.text, debug=(debug and page == 1))
@@ -243,7 +281,11 @@ def search_query(session: requests.Session, query: str,
 
         if not has_next:
             break
+        next_params = _next_page_params(resp.text, page)
+        if not next_params:
+            break
         page += 1
+        page_params = next_params
 
 
 def search(query: str, year_from: int | None = None, year_to: int | None = None,
