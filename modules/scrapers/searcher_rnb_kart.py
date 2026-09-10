@@ -150,12 +150,11 @@ def _has_next_page(html: str) -> bool:
 
 
 def _parse_years(text: str) -> tuple[int | None, int | None]:
-    # Игнорируем годы после 1920 (библиографические ссылки типа "1961")
-    nums = re.findall(r"\b(1[5-9]\d{2})\b", text)
-    if not nums:
-        return None, None
-    ys = [int(n) for n in nums]
-    return min(ys), max(ys)
+    # Only the first publication imprint; never dates in reference notes.
+    main = re.split(r'Вых\. дан\.|Из изд\.|Лемус|Показ\.', text, maxsplit=1)[0]
+    m = re.search(r'[-–—]\s*\[?[^:\[\]]{1,80}:\s*[^,]+,\s*(1\d{3})\]?[ .]', main)
+    year = int(m[1]) if m else None
+    return year, year
 
 
 def _parse_records(html: str, geo: str, debug: bool = False) -> list[RnbKartRecord]:
@@ -209,7 +208,7 @@ def _parse_records(html: str, geo: str, debug: bool = False) -> list[RnbKartReco
         records.append(RnbKartRecord(
             record_num=rec_num,
             shelfmark=shelfmark,
-            description=description[:600],
+            description=description,
             year_from=y_from,
             year_to=y_to,
             rusmarc_url=rusmarc_url,
@@ -291,9 +290,24 @@ def main() -> None:
     parser.add_argument("--geo", default="",
                         help="Географический заголовок (Калуж / Перм / Смолен / Яросла)")
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument('--rusmarc-html', type=Path, help='Offline: one user-saved RUSMARC HTML')
+    parser.add_argument('--output', type=Path, help='New directory for offline card export')
     parser.add_argument("--csv", default="",
                         help="Записать структурированный результат в CSV")
     args = parser.parse_args()
+
+    if args.rusmarc_html:
+        if not args.output or args.geo or args.csv:
+            parser.error('--rusmarc-html requires --output and cannot be combined with --geo/--csv')
+        try:
+            from .rnb_rusmarc import export_saved
+        except ImportError:
+            from rnb_rusmarc import export_saved
+        r = export_saved(args.rusmarc_html, args.output)
+        print(f"Offline RUSMARC: {r['record_num']}, year={r['year']}, scale={r['scale_denominator']}")
+        return
+    if args.output:
+        parser.error('--output is only supported with --rusmarc-html')
 
     results = list(search(args.geo, args.debug))
     if args.csv:
