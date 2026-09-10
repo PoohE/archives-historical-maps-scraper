@@ -45,12 +45,18 @@ def convert(entry, choices):
                 "Описание": rec.get("description", ""), "Автор внесения": "Агент"})
     issues = []
     editions = extra.get("edition_links") or []
+    # GPIB's illustration edition field includes both the series and volume.
+    # Preserve its complete wording; the URL still points to the selected volume.
+    full_edition_title = (extra.get("gpib_meta") or {}).get("Издание (для иллюстраций)", "")
+    row["Связанное издание: название"] = full_edition_title
     edition = choose(editions, choice.get("edition_url"), "url")
     if edition:
         for source, target in [("title", "название"), ("url", "URL"),
                                ("author", "автор / ответственность"),
                                ("description", "библиографическое описание")]:
             row["Связанное издание: " + target] = edition.get(source) or ""
+        if full_edition_title:
+            row["Связанное издание: название"] = full_edition_title
         lower, upper = edition.get("year_from"), edition.get("year_to")
         if isinstance(lower, (int, float)) and not isinstance(lower, bool) and lower == upper:
             row["Связанное издание: год издания"] = lower
