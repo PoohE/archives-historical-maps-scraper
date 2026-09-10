@@ -7,14 +7,14 @@ card URL: {"url": {"edition_url": "...", "image_url": "..."}}.
 import argparse
 import csv
 import json
+import re
 from pathlib import Path
 
 FIELDS = [
     "Название источника", "Ссылка на онлайн-архив",
     "Прямая ссылка на файл изображения", "Связанное издание: название",
     "Связанное издание: URL", "Связанное издание: год издания",
-    "Связанное издание: автор / ответственность",
-    "Связанное издание: библиографическое описание", "Связанное издание: тип",
+    "Связанное издание: библиографическое описание",
     "Оригинальный масштаб", "Масштаб (знаменатель)", "Описание",
     "Автор / составитель", "Место создания", "Примечания", "Автор внесения",
 ]
@@ -51,9 +51,7 @@ def convert(entry, choices):
     row["Связанное издание: название"] = full_edition_title
     edition = choose(editions, choice.get("edition_url"), "url")
     if edition:
-        for source, target in [("title", "название"), ("url", "URL"),
-                               ("author", "автор / ответственность"),
-                               ("description", "библиографическое описание")]:
+        for source, target in [("title", "название"), ("url", "URL")]:
             row["Связанное издание: " + target] = edition.get(source) or ""
         if full_edition_title:
             row["Связанное издание: название"] = full_edition_title
@@ -62,11 +60,22 @@ def convert(entry, choices):
             row["Связанное издание: год издания"] = lower
         elif lower or upper:
             issues.append("Годы издания требуют проверки: " + str((lower, upper)))
-        allowed = {"Атлас", "Книга (монография)", "Журнал", "Сборник", "Отчёт", "Диссертация", "Другое"}
-        if edition.get("type") in allowed:
-            row["Связанное издание: тип"] = edition["type"]
-        elif edition.get("type"):
-            issues.append("Сопоставить тип издания: " + edition["type"])
+        place, publisher = edition.get("place") or "", edition.get("publisher") or ""
+        # Conservative reading of an explicit publication segment, e.g.
+        # '. - СПб. : изд. Центр. стат. ком. Мин. внутр. дел, 1861-1885.'
+        imprint = re.search(r"(?:^|\.\s*[-–—]\s*)([^:\n]{1,80})\s*:\s*([^\n]+?),\s*\[?\d{4}", edition.get("description") or "")
+        if imprint:
+            place = place or imprint.group(1).strip()
+            publisher = publisher or imprint.group(2).strip()
+        summary = [row["Связанное издание: название"]]
+        year = row["Связанное издание: год издания"]
+        if year != "":
+            summary.append("Год издания: " + str(year))
+        if place:
+            summary.append("Место издания: " + place)
+        if publisher:
+            summary.append("Издатель: " + publisher)
+        row["Связанное издание: библиографическое описание"] = "\n".join(filter(None, summary))
     elif editions:
         issues.append("Выбрать связанное издание: " + json.dumps(editions, ensure_ascii=False))
     images = extra.get("image_urls") or []
