@@ -17,6 +17,7 @@ import sys
 import time
 import signal
 from datetime import datetime
+from dataclasses import asdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "modules"))
@@ -195,7 +196,10 @@ def main():
     files_exist = out_file.exists() and done
     file_mode = "a" if files_exist else "w"
 
-    with (open(out_file, file_mode, newline="", encoding="utf-8-sig") as csvf,
+    # Full records preserve linked editions/images for the Notion exporter.
+    # Exclusive creation protects previous raw material when not resuming.
+    with (open(run_dir / "records_full.jsonl", "a" if file_mode == "a" else "x", encoding="utf-8") as rawf,
+          open(out_file, file_mode, newline="", encoding="utf-8-sig") as csvf,
           open(review_file, file_mode, newline="", encoding="utf-8-sig") as rvf):
 
         writer  = csv.writer(csvf)
@@ -211,10 +215,14 @@ def main():
             """Раскладывает записи по results/review. Возвращает (pos, doubtful)."""
             pos = doubtful = 0
             for rec in rec_iter:
+                rawf.write(json.dumps({"source": source_id, "territory": territory,
+                                       "keyword": keyword, "record": asdict(rec)},
+                                      ensure_ascii=False) + "\n")
+                rawf.flush()
                 row = [
                     source_id, territory, keyword,
                     rec.title, rec.year_from, rec.year_to,
-                    rec.url, (rec.description or "")[:200],
+                    rec.url, (rec.description or ""),
                 ]
                 if classify(rec.title) == "positive":
                     writer.writerow(row)
