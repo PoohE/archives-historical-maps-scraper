@@ -90,13 +90,21 @@ def _in_year_range(y_from: int | None, y_to: int | None,
 PRLIB_SEARCH = "https://prlib.ru/collections/467000/search"
 PRLIB_BASE   = "https://prlib.ru"
 
+def _prlib_detail_record(url: str) -> LibraryRecord:
+    try:
+        from .prlib_card import fetch_card
+    except ImportError:
+        from prlib_card import fetch_card
+    return LibraryRecord(**fetch_card(url))
+
 def _search_prlib(query: str, year_from: int | None, year_to: int | None,
                   max_pages: int) -> Iterator[LibraryRecord]:
     """
     Президентская библиотека (prlib.ru) — новый сайт 2025.
     Поиск: /collections/467000/search?text=<query>&page=<page>
-    Результаты: карточки материалов с заголовком, годом и ссылкой.
+    Результаты обогащаются полной карточкой; ошибки детали не считаются пустой выдачей.
     """
+    seen = set()
     for page in range(1, max_pages + 1):
         params: dict = {"text": query, "page": page}
         try:
@@ -133,14 +141,12 @@ def _search_prlib(query: str, year_from: int | None, year_to: int | None,
                 title = link.get_text(" ", strip=True)
                 if not title:
                     continue
-                y_from, y_to = _parse_years(title)
-                if not _in_year_range(y_from, y_to, year_from, year_to):
+                if item_url in seen:
                     continue
-                yield LibraryRecord(
-                    title=title, year_from=y_from, year_to=y_to,
-                    url=item_url, library_id="prlib",
-                    library_name="Президентская библиотека",
-                )
+                seen.add(item_url)
+                rec = _prlib_detail_record(item_url)
+                if _in_year_range(rec.year_from, rec.year_to, year_from, year_to):
+                    yield rec
             break
 
         found_on_page = False
@@ -165,15 +171,19 @@ def _search_prlib(query: str, year_from: int | None, year_to: int | None,
             date_raw = date_el.get_text(" ", strip=True) if date_el else ""
             y_from, y_to = _parse_years(date_raw or title)
 
-            if not title or not _in_year_range(y_from, y_to, year_from, year_to):
+            if not title:
                 continue
 
             found_on_page = True
-            yield LibraryRecord(
-                title=title, year_from=y_from, year_to=y_to,
-                url=item_url, library_id="prlib",
-                library_name="Президентская библиотека",
-            )
+            if item_url in seen:
+                continue
+            seen.add(item_url)
+            # Only item links belong to the detail adapter; no collection-page guesses.
+            if not re.search(r'/item/\d+/?$', item_url):
+                continue
+            rec = _prlib_detail_record(item_url)
+            if _in_year_range(rec.year_from, rec.year_to, year_from, year_to):
+                yield rec
 
         if not found_on_page:
             break
