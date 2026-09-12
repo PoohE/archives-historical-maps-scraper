@@ -119,15 +119,17 @@ def _parse_case_page(html: str, debug: bool = False) -> dict:
     # Заголовок
     h1 = soup.find("h1")
     if h1:
-        data["_title"] = h1.get_text(strip=True)
+        data["_title"] = ' '.join(h1.get_text(' ', strip=True).split())
 
     # Таблица или dl с полями карточки
     # Вариант 1: таблица с парами <th>/<td>
     for row in soup.select("table tr"):
-        cells = row.find_all(["th", "td"])
-        if len(cells) >= 2:
+        cells = row.find_all(["th", "td"], recursive=False)
+        if len(cells) == 2 and cells[0].name == 'th' and cells[1].name == 'td':
+            for control in cells[1].select('a.table__cell-collapse'):
+                control.decompose()
             key = cells[0].get_text(strip=True).rstrip(":")
-            val = cells[1].get_text(" ", strip=True)
+            val = ' '.join(cells[1].get_text(" ", strip=True).split())
             if key:
                 data[key] = val
 
@@ -148,6 +150,13 @@ def _parse_case_page(html: str, debug: bool = False) -> dict:
                 if dd:
                     data[dt.get_text(strip=True).rstrip(":")] = dd.get_text(" ", strip=True)
 
+    for anchor in soup.select('.breadcrumb a[href]'):
+        label = ' '.join(anchor.get_text(' ', strip=True).split())
+        for kind, key in (('Фонд', 'Фонд'), ('Опись', 'Опись')):
+            match = re.match(rf'{kind}\s+(\d+)(?=\D|$)', label)
+            if match:
+                data[key] = match[1]
+                data[key + ' URL'] = _extract_case_url(anchor['href'])
     return data
 
 
@@ -259,10 +268,12 @@ def search_query(session: requests.Session, query: str,
             found_total += 1
             yield RosarchiveRecord(
                 title=title,
+                fund=data.get('Фонд', ''),
+                inventory=data.get('Опись', ''),
                 case_num=data.get("Номер дела", ""),
                 year_from=y_from,
                 year_to=y_to,
-                annotation=data.get("Аннотация", "")[:300],
+                annotation=data.get("Аннотация", ""),
                 geography=data.get("География", ""),
                 keywords=data.get("Ключевые слова", ""),
                 doc_count=data.get("Количество документов в деле", ""),
