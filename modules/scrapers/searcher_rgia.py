@@ -101,6 +101,9 @@ SIMPLE_COMPONENT_ID = "72425"
 class RgiaRecord:
     title: str = ""
     fund_code: str = ""        # Шифр: Ф.NNN Оп.NNN Д.NNN
+    fund_name: str = ""
+    sheets: str = ""
+    date_raw: str = ""
     subject_group: str = ""    # Наименование группы (в предметном указателе)
     year_from: int | None = None
     year_to: int | None = None
@@ -133,6 +136,27 @@ def _parse_object_page(html: str, obj_url: str, debug: bool = False) -> RgiaReco
         print("─── конец ───\n")
 
     soup = BeautifulSoup(html, "lxml")
+
+    # The detail panel uses labelled dataLine blocks, not table or dl rows.
+    detail_fields = {}
+    rows = soup.select('.dataLine[id]') or soup.select('.dataLine')
+    for row in rows:
+        label = row.select_one('.dataLabel')
+        value = row.select_one('.dataWrap')
+        if label is not None and value is not None:
+            key = ' '.join(label.get_text(' ', strip=True).split()).rstrip(':')
+            detail_fields[key] = ' '.join(value.get_text(' ', strip=True).split())
+    if detail_fields.get('Шифр') and detail_fields.get('Заголовок'):
+        date_raw = detail_fields.get('Крайние даты', '')
+        year_from, year_to = _parse_years(date_raw)
+        return RgiaRecord(
+            title=detail_fields['Заголовок'], fund_code=detail_fields['Шифр'],
+            fund_name=detail_fields.get('Название фонда', ''),
+            sheets=detail_fields.get('Количество листов', ''), date_raw=date_raw,
+            year_from=year_from, year_to=year_to,
+            bib_source=detail_fields.get('Библиографический источник', ''),
+            notes=detail_fields.get('Примечание', ''), url=obj_url,
+        )
 
     # Заголовок
     title = ""
@@ -214,17 +238,20 @@ def _parse_object_json(data: dict, obj_url: str) -> RgiaRecord:
     y_from, _ = _parse_years(start)
     _, y_to = _parse_years(end)
     if y_from is None and y_to is None:
-        y_from, y_to = _parse_years(" ".join(attrs.values()))
+        y_from, y_to = _parse_years(attrs.get('Крайние даты', ''))
     number = attrs.get("Номер фонда", "")
-    fund_code = f"Ф. {number}" if number else attrs.get("Шифр", "")
+    fund_code = attrs.get('Шифр', '') or (f"Ф. {number}" if number else '')
     return RgiaRecord(
         title=title,
         fund_code=fund_code,
+        fund_name=attrs.get('Название фонда', ''),
+        sheets=attrs.get('Количество листов', ''),
+        date_raw=attrs.get('Крайние даты', '') or ' '.join(x for x in (start, end) if x),
         subject_group=str(data.get("objectTypeName") or attrs.get("Вид фонда", "")),
         year_from=y_from,
         year_to=y_to,
-        bib_source=attrs.get("Библиографический источник", "")[:200],
-        notes=attrs.get("Аннотация", "")[:200],
+        bib_source=attrs.get("Библиографический источник", ""),
+        notes=attrs.get("Примечание", "") or attrs.get("Аннотация", ""),
         url=obj_url,
     )
 
@@ -456,7 +483,7 @@ def main() -> None:
         ))
 
     if args.csv:
-        fields = ["title", "fund_code", "subject_group", "year_from",
+        fields = ["title", "fund_code", "fund_name", "sheets", "date_raw", "subject_group", "year_from",
                   "year_to", "bib_source", "notes", "url", "library_id",
                   "library_name"]
         with open(args.csv, "w", encoding="utf-8-sig", newline="") as fh:
