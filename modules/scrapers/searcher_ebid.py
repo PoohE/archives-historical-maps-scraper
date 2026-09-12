@@ -59,6 +59,13 @@ import time
 import argparse
 import csv
 import sys
+import json
+import hashlib
+from datetime import datetime, timezone
+try:
+    from .ebid_card import parse_card
+except ImportError:
+    from ebid_card import parse_card
 from dataclasses import asdict, dataclass
 from typing import Iterator
 
@@ -98,6 +105,13 @@ class EbidRecord:
     geography: str = ""
     thematic: str = ""          # Тематика
     source: str = ""            # Источник документа
+    source_url: str = ""
+    source_year: int | None = None
+    depicted_year: int | None = None
+    author: str = ""
+    url_viewer: str = ""
+    publication_statement: str = ""
+    extra_json: str = ""
     url: str = ""
     library_id: str = "ebid"
     library_name: str = "ЭБИД (docs.historyrussia.org)"
@@ -157,42 +171,40 @@ def _parse_drupal_fields(soup: BeautifulSoup) -> dict[str, str]:
 
 def _parse_record_page(html: str, url: str, debug: bool = False) -> EbidRecord | None:
     """
-    Парсит страницу документа. Возвращает None если это не карта.
+    Парсит карточку без раннего отбора по типу; неизвестная разметка — ошибка.
     """
     if debug:
         print("\n─── ЭБИД record HTML (первые 3000 символов) ───")
         print(html[:3000])
         print("─── конец ───\n")
 
-    soup = BeautifulSoup(html, "lxml")
-
-    h1 = soup.find("h1")
-    title = h1.get_text(strip=True) if h1 else ""
-
-    fields = _parse_drupal_fields(soup)
-
-    # Фильтр: только «Карта» (или схема, план, чертёж)
-    # Требуем ЯВНОЕ наличие типа — если поле пустое, это не карта (слишком много шума)
-    doc_type = fields.get("Виды документов", "")
-    map_keywords = ("карта", "план", "атлас", "схема", "чертёж")
-    if not any(kw in doc_type.lower() for kw in map_keywords):
-        return None  # поле пустое или тип не картографический
-
-    date_raw = fields.get("Дата документа", "") or fields.get("Даты", "")
-    y_from, y_to = _parse_years(date_raw)
-
+    # Collect first; relevance classification belongs to the final review stage.
+    parsed = parse_card(html, url)
+    fields = parsed['raw_fields']
+    parsed['provenance'] = {
+        'url': url, 'decoded_html_sha256': hashlib.sha256(html.encode('utf-8')).hexdigest(),
+        'parsed_at': datetime.now(timezone.utc).isoformat(),
+        'method': 'html_parser', 'status': 'candidate',
+    }
     return EbidRecord(
-        title=title or fields.get("Название документа", ""),
-        doc_type=doc_type,
-        bib_description=fields.get("Библиографическое описание", "")[:300],
-        date_raw=date_raw,
-        year_from=y_from,
-        year_to=y_to,
+        title=parsed['title'],
+        doc_type=fields.get('Виды документов', ''),
+        bib_description=parsed['bibliography'],
+        date_raw=parsed['date_raw'],
+        year_from=parsed['creation_year'],
+        year_to=parsed['creation_year'],
         fund_code=fields.get("Шифр", ""),
         archive=fields.get("Архив", ""),
         geography=fields.get("География", ""),
-        thematic=fields.get("Тематика", "")[:150],
-        source=fields.get("Источник документа", "")[:150],
+        thematic=fields.get("Тематика", ""),
+        source=parsed['linked_edition']['description'],
+        source_url=parsed['linked_edition']['url'],
+        source_year=parsed['linked_edition']['year'],
+        depicted_year=parsed['depicted_year'],
+        author=parsed['author'],
+        url_viewer=parsed['viewer_url'],
+        publication_statement=parsed['publication_statement'],
+        extra_json=json.dumps(parsed, ensure_ascii=False),
         url=url,
     )
 
@@ -222,7 +234,7 @@ def search_query(session: requests.Session, query: str,
                  year_from: int | None = None, year_to: int | None = None,
                  max_pages: int = 20,
                  debug: bool = False) -> Iterator[EbidRecord]:
-    """Поиск по одному запросу, постфильтрация по «Виды документов == карта»."""
+    """Поиск по одному запросу; содержательная классификация отложена."""
     found_total = 0
 
     for page in range(1, max_pages + 1):
@@ -256,7 +268,7 @@ def search_query(session: requests.Session, query: str,
         if page == 1:
             m = re.search(r"Найдено\s+(\d+)\s+результат", resp.text, re.I)
             total_str = m.group(1) if m else "?"
-            print(f"[ЭБИД] {query!r}: {total_str} результатов (фильтруем по типу «Карта»)")
+            print(f"[ЭБИД] {query!r}: {total_str} результатов (без отбора по типу)")
 
         maps_on_page = 0
         for doc_url in links:
@@ -268,7 +280,11 @@ def search_query(session: requests.Session, query: str,
                 print(f"[ЭБИД] Ошибка {doc_url}: {e}")
                 continue
 
-            rec = _parse_record_page(r.text, doc_url, debug=(debug and found_total == 0))
+            try:
+                rec = _parse_record_page(r.text, doc_url, debug=(debug and found_total == 0))
+            except (ValueError, KeyError) as error:
+                # An unexpected layout is a failed run, never an empty success.
+                raise RuntimeError(f'EBID card parse failed: {doc_url}') from error
             if rec is None:
                 continue  # не карта
 
@@ -281,8 +297,8 @@ def search_query(session: requests.Session, query: str,
             maps_on_page += 1
             yield rec
 
-        print(f"[ЭБИД]   стр.{page}: {len(links)} документов, из них карт: {maps_on_page} "
-              f"(итого карт: {found_total})")
+        print(f"[ЭБИД]   стр.{page}: {len(links)} ссылок, записей: {maps_on_page} "
+              f"(итого записей: {found_total})")
 
         # Если на странице нет карт несколько страниц подряд — можно остановить досрочно
         # (осторожно: карты могут быть разбросаны среди других документов)
