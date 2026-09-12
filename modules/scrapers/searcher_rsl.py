@@ -403,7 +403,21 @@ def main() -> None:
                         help="Дамп HTML первой страницы")
     parser.add_argument("--csv", default="",
                         help="Записать структурированный результат в CSV")
+    parser.add_argument('--marc-file', help='Offline: one user-downloaded .mrc file')
+    parser.add_argument('--output', help='New directory for offline MARC export')
     args = parser.parse_args()
+    if args.marc_file:
+        if not args.output or args.query or args.all_queries or args.csv:
+            parser.error('--marc-file requires --output; do not combine with search or --csv')
+        try:
+            from .rsl_marc import export_saved
+        except ImportError:
+            from rsl_marc import export_saved
+        record = export_saved(args.marc_file, args.output)
+        print(f"Offline MARC: {record['record_id']}; year={record['year']}; scale={record['scale_denominator']}")
+        return
+    if args.output:
+        parser.error('--output requires --marc-file')
 
     if args.all_queries:
         session = _make_session()
