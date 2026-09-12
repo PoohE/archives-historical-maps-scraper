@@ -64,8 +64,10 @@ import hashlib
 from datetime import datetime, timezone
 try:
     from .ebid_card import parse_card
+    from .ebid_edition import resolve_edition
 except ImportError:
     from ebid_card import parse_card
+    from ebid_edition import resolve_edition
 from dataclasses import asdict, dataclass
 from typing import Iterator
 
@@ -169,7 +171,7 @@ def _parse_drupal_fields(soup: BeautifulSoup) -> dict[str, str]:
     return fields
 
 
-def _parse_record_page(html: str, url: str, debug: bool = False) -> EbidRecord | None:
+def _parse_record_page(html: str, url: str, debug: bool = False, edition_loader=None) -> EbidRecord | None:
     """
     Парсит карточку без раннего отбора по типу; неизвестная разметка — ошибка.
     """
@@ -179,7 +181,7 @@ def _parse_record_page(html: str, url: str, debug: bool = False) -> EbidRecord |
         print("─── конец ───\n")
 
     # Collect first; relevance classification belongs to the final review stage.
-    parsed = parse_card(html, url)
+    parsed = resolve_edition(html, url, edition_loader) if edition_loader else parse_card(html, url)
     fields = parsed['raw_fields']
     parsed['provenance'] = {
         'url': url, 'decoded_html_sha256': hashlib.sha256(html.encode('utf-8')).hexdigest(),
@@ -237,6 +239,14 @@ def search_query(session: requests.Session, query: str,
     """Поиск по одному запросу; содержательная классификация отложена."""
     found_total = 0
 
+    def load_edition(url):
+        # Resolver allows a single HTTPS EBID breadcrumb candidate only.
+        time.sleep(1.5)
+        response = session.get(url, timeout=20, allow_redirects=False)
+        if response.status_code != 200:
+            raise ValueError(f'Edition HTTP status {response.status_code}: {url}')
+        return response.text
+
     for page in range(1, max_pages + 1):
         params: dict[str, str | int] = {
             "query":     query,
@@ -281,7 +291,7 @@ def search_query(session: requests.Session, query: str,
                 continue
 
             try:
-                rec = _parse_record_page(r.text, doc_url, debug=(debug and found_total == 0))
+                rec = _parse_record_page(r.text, doc_url, debug=(debug and found_total == 0), edition_loader=load_edition)
             except (ValueError, KeyError) as error:
                 # An unexpected layout is a failed run, never an empty success.
                 raise RuntimeError(f'EBID card parse failed: {doc_url}') from error

@@ -28,7 +28,8 @@ class IntegrationTests(unittest.TestCase):
         result_page = Mock(text='<a href="/ru/nodes/87164">Example</a>', url=URL)
         card_page = Mock(text=self.html)
         session = Mock()
-        session.get.side_effect = [result_page, card_page]
+        edition_path = FIXTURE.parent.parent / 'ebid_edition_20260912/edition.html'
+        session.get.side_effect = [result_page, card_page, Mock(text=edition_path.read_text(encoding='utf-8'), status_code=200)]
         with patch('searcher_ebid.time.sleep'):
             records = list(search_query(session, 'test', max_pages=1))
         self.assertEqual(len(records), 1)
