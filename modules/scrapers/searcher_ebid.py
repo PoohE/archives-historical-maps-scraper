@@ -58,6 +58,7 @@ import re
 import time
 import argparse
 import csv
+import sys
 from dataclasses import asdict, dataclass
 from typing import Iterator
 
@@ -298,6 +299,14 @@ def search(query: str, year_from: int | None = None,
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    # Isolated card audit: no network search, date filters or bulk collection.
+    if '--html' in sys.argv:
+        try:
+            from .ebid_card import main as audit_card
+        except ImportError:
+            from ebid_card import main as audit_card
+        audit_card()
+        return
     parser = argparse.ArgumentParser(
         description="Поиск карт в ЭБИД (docs.historyrussia.org)"
     )
