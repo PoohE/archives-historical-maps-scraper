@@ -59,6 +59,14 @@ import sys
 import time
 import argparse
 import csv
+import json
+import hashlib
+from datetime import datetime, timezone
+from urllib.parse import urlsplit, parse_qs
+try:
+    from .garf_card import parse_card
+except ImportError:
+    from garf_card import parse_card
 from dataclasses import asdict, dataclass
 from typing import Iterator
 
@@ -95,8 +103,39 @@ class GarfRecord:
     year_from: int | None = None
     year_to:   int | None = None
     url:       str = ""
+    sheets: str = ""
+    annotation: str = ""
+    notes: str = ""
+    date_raw: str = ""
+    extra_json: str = ""
     library_id:   str = "garf"
     library_name: str = "ГАРФ — Государственный архив РФ (Ф.1829)"
+
+
+def fetch_case_record(session, listed):
+    """Fetch one same-site v=7 card; never silently substitute list metadata."""
+    url = listed['url']
+    parts = urlsplit(url)
+    if (parts.netloc != 'opisi.garf.su' or parts.scheme not in ('http', 'https')
+            or parts.path != '/default.asp' or parse_qs(parts.query).get('v') != ['7']):
+        raise ValueError('Missing or unexpected GARF detail-card URL')
+    time.sleep(1.5)
+    response = session.get(url, timeout=25, allow_redirects=False)
+    if response.status_code != 200:
+        raise RuntimeError(f'GARF detail HTTP {response.status_code}')
+    raw = response.content
+    detail = parse_card(raw)
+    if detail['case_number'] != listed['delo_num']:
+        raise ValueError('GARF case number mismatch')
+    detail['listing'] = listed
+    detail['provenance'] = dict(url=url, sha256=hashlib.sha256(raw).hexdigest(),
+                               retrieved_at=datetime.now(timezone.utc).isoformat(), http_status=200,
+                               transport=parts.scheme, encoding='windows-1251')
+    return GarfRecord(title=detail['title'], delo_num=detail['case_number'],
+                      year_from=detail['year_from'], year_to=detail['year_to'], url=url,
+                      sheets=detail['sheets'], annotation=detail['annotation'],
+                      notes=detail['notes'], date_raw=detail['date_raw'],
+                      extra_json=json.dumps(detail, ensure_ascii=False))
 
 
 def _make_session() -> requests.Session:
@@ -286,21 +325,16 @@ def iter_fond(session: requests.Session, geo_filter: list[str] | None = None,
             # if not any(k in title_lower for k in MAP_KEYS):
             #     continue
 
-            y_from = rec["y_from"]
-            y_to   = rec["y_to"]
+            detail_record = fetch_case_record(session, rec)
+            y_from = detail_record.year_from
+            y_to = detail_record.year_to
             if year_from and y_to and y_to < year_from:
                 continue
             if year_to and y_from and y_from > year_to:
                 continue
 
             found_total += 1
-            yield GarfRecord(
-                title=rec["title"],
-                delo_num=rec["delo_num"],
-                year_from=y_from,
-                year_to=y_to,
-                url=rec["url"],
-            )
+            yield detail_record
 
         print(f"[ГАРФ] стр.{page}/{max_page}: {len(raw)} дел, "
               f"подходящих {found_total}")
