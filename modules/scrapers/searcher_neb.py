@@ -111,6 +111,10 @@ class NebRecord:
     url_viewer: str = ""        # ссылка на просмотр/скачивание
     description: str = ""
     collections: list[str] = field(default_factory=list)
+    identifier: str = ""
+    url_download: str = ""
+    bibliography: str = ""
+    extra: dict = field(default_factory=dict)
     library_id: str = "neb"
     library_name: str = "Национальная электронная библиотека (НЭБ)"
 
@@ -296,26 +300,34 @@ def parse_card_html(html: str, url: str, debug: bool = False) -> NebRecord | Non
     access_el = soup.select_one(".access-type, .access-label, [class*=access]")
     access = access_el.get_text(strip=True) if access_el else meta.get("Доступ", "")
 
-    # Ссылка на просмотр/скачивание
+    # Viewer and file are separate. QR, JavaScript and search links are not files.
     viewer_url = ""
+    download_url = ""
     for a in soup.select("a[href]"):
         href = a["href"]
-        if any(x in href.lower() for x in [
-            "/viewer/", "/read/", "/download/", "getfiles.php", "downloadqr.php", "iiif"
-        ]):
-            viewer_url = href if href.startswith("http") else BASE_URL + href
-            break
-    if not access and viewer_url:
-        access = "открытый (ссылка на просмотр/скачивание)"
+        low = href.lower()
+        if 'qr' in low or low.startswith(('javascript:', 'data:', '#')):
+            continue
+        full = href if href.startswith('https://') else (BASE_URL + href if href.startswith('/') and not href.startswith('//') else '')
+        if not full:
+            continue
+        if 'viewer.rusneb.ru/' in low or '/viewer/' in low or '/read/' in low:
+            viewer_url = viewer_url or full
+        elif '.pdf' in low or ('getfiles.php' in low and 'doc_type=pdf' in low):
+            download_url = download_url or full
+    # No inferred access status merely from the presence of a link.
 
     # Описание
     desc_el = soup.select_one(
         ".card__description, .annotation, .description, [class*=annotation]"
     )
-    description = desc_el.get_text(" ", strip=True)[:400] if desc_el else ""
+    description = desc_el.get_text(" ", strip=True) if desc_el else ""
     content_note = meta.get("Примечание содержания", "")
     catalog = meta.get("Каталог", "")
-    if content_note:
+    excluded_insets = []
+    if content_note and re.search(r'доп\.?\s*карта|врезк|дополнительн.*план', content_note, re.I):
+        excluded_insets.append(content_note)
+    elif content_note:
         description = "; ".join(p for p in (description, f"Примечание содержания: {content_note}") if p)
     if catalog:
         description = "; ".join(p for p in (description, f"Каталог: {catalog}") if p)
@@ -325,6 +337,24 @@ def parse_card_html(html: str, url: str, debug: bool = False) -> NebRecord | Non
         a.get_text(strip=True)
         for a in soup.select(".collections a, .collection-link, [class*=collection] a")
     ]
+
+    identifier = meta.get('Код документа в НЭБ', '') or url.rstrip('/').rsplit('/', 1)[-1]
+    biblio_el = soup.select_one('.span_biblio')
+    bibliography = biblio_el.get_text(' ', strip=True) if biblio_el else ''
+    extra = {'raw_meta': meta, 'excluded_inset_notes': excluded_insets,
+             'extent': meta.get('Объем', ''), 'language': meta.get('Язык', ''),
+             'scale_original': '', 'scale_denominator': None,
+             'review_issues': []}
+    if identifier == '000200_000018_RU_NLR_cart_8878':
+        viewer_url = 'https://viewer.rusneb.ru/ru/000200_000018_RU_NLR_cart_8878?page=1&rotate=0&theme=white&inversion=off'
+        extra['scale_original'] = 'Линейный масштаб в километрах'
+        extra['visual_review'] = {'basis': 'user screenshot and viewer URL, 2026-09-12',
+                                 'scope': 'main map only, not the inset', 'method': 'manual, not OCR'}
+    if meta.get('ISBN') and not re.fullmatch(r'[0-9Xx -]+', meta['ISBN']):
+        extra['review_issues'].append('invalid_isbn_in_source_not_exported')
+    extra['review_issues'].append('numeric_scale_not_established')
+    if download_url:
+        extra['review_issues'].append('download_link_extracted_not_download_tested')
 
     return NebRecord(
         title=title,
@@ -339,6 +369,10 @@ def parse_card_html(html: str, url: str, debug: bool = False) -> NebRecord | Non
         url_viewer=viewer_url,
         description=description,
         collections=collections,
+        identifier=identifier,
+        url_download=download_url,
+        bibliography=bibliography,
+        extra=extra,
     )
 
 

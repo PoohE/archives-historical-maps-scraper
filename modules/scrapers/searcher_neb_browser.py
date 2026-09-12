@@ -48,6 +48,8 @@ CSV_FIELDS = [
     "source", "record_type", "territory", "query", "title", "year_from",
     "year_to", "identifier", "url", "description", "coverage_status",
     "retrieval_date", "source_run",
+    "author", "place", "publisher", "source_lib", "url_viewer", "url_download",
+    "bibliography", "extra_json",
 ]
 
 
@@ -154,6 +156,10 @@ def _record_row(rec: NebRecord, territory: str, query: str, retrieval_date: str,
         "coverage_status": "browser_chromium_public_card",
         "retrieval_date": retrieval_date,
         "source_run": source_run,
+        "author": rec.author, "place": rec.place, "publisher": rec.publisher,
+        "source_lib": rec.source_lib, "url_viewer": rec.url_viewer,
+        "url_download": rec.url_download, "bibliography": rec.bibliography,
+        "extra_json": json.dumps(rec.extra, ensure_ascii=False),
     }
 
 
