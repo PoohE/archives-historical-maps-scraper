@@ -1,259 +1,97 @@
-# Archives Historical Maps Scraper
+# Поиск исторических карт в онлайн-архивах
 
-Automated system for searching and aggregating historical cartographic materials (maps, plans, charts, drawings) from Russian federal archives and regional libraries.
+Воспроизводимый набор read-only-скриптов для поиска исторических карт, планов,
+атласов и чертежей в открытых каталогах российских архивов и библиотек.
 
-**Status:** ✅ Production-ready (5 ready sources + 7 partial sources + 2 under research)
+Проект находится в исследовательской разработке. Фактическое состояние
+источников, полнота покрытия и ограничения доступа зафиксированы в
+`COMPLETENESS_MATRIX_20260913.md` и `PROGRESS.md`. Исторические отчёты не
+перезаписываются и не заменяют текущую матрицу.
 
----
+## Область и ограничения
 
-## 🎯 Overview
+- целевые исторические территории: Калужская, Пермская, Смоленская и
+  Ярославская губернии, включая уездные запросы;
+- транспорт выбирается по источнику: GET/POST, legacy-каталоги, API,
+  ограниченный browser fallback;
+- автоматизация работает только с публичным доступом и не обходит CAPTCHA,
+  авторизацию, геоблокировки, антибот-защиту или TLS-ограничения;
+- результаты, снимки страниц и локальные выгрузки не являются частью публичного
+  кода и исключены из публикационной области через `.gitignore`.
 
-This project crawls **16+ Russian archives** to discover historical cartographic materials from the **XVIII–XX centuries**, focusing on four historical regions:
-- Kaluga Gubernia
-- Perm Gubernia  
-- Smolensk Gubernia
-- Yaroslavl Gubernia
+## Структура
 
-### Key Features
-✅ **No VPN required** — all sources accessible from Russia  
-✅ **Multiple scraping techniques** — REST API, POST forms, WebDriver, AJAX handling  
-✅ **Territory expansion** — 49 administrative units (4 gubernias + 4 namestenichestvos + 41 uezds)  
-✅ **5 keyword variants** — карта, план, атлас, съёмка, чертёж  
-✅ **Deduplication** — ~3,600 unique records across sources  
-✅ **Full documentation** — guides for operators, developers, researchers  
+```text
+scripts/
+├── run_search.py              основной оркестратор
+├── check_source.py            smoke-проверка источника
+├── review.py                  просмотр сомнительных результатов
+├── catalog_search.py          совместимый каталогизационный режим
+├── modules/                   рабочие адаптеры и парсеры
+└── maintenance/               одноразовые административные утилиты
+scripts/legacy/                сохранённые варианты с другого компьютера
+tests/                         локальные unit-тесты парсеров
+docs/                          brief и проектная документация
+output/                        локальные результаты и evidence
+скрины архивов/                локальные исходные снимки, не для публикации
+```
 
----
+## Установка
 
-## 📊 Sources Status
+Нужен Python 3.12 или новее:
 
-### ✅ Ready (5 sources)
-- **GPIB** (State Public Historical Library) — Selenium WebDriver
-- **GAYAO** (Yaroslavl State Archive) — GET requests
-- **RNB** (Russian National Library, XVIII century maps catalog) — POST (windows-1251)
-- **NEB** (National Electronic Library) — GET + retry logic
-- **GAPK archive1** (Perm Regional Archives) — GET filter by keywords
-
-### ⚠️ Partial (7 sources, docs ready)
-- GARF (Federal Archive) — GET working, selectors need refinement
-- Kaluga ONBIB (Веб-ИРБИС 64) — POST template ready, params need verification
-- Perm Regional Library (ELiS CMS) — AJAX/API approach needed
-- Smolensk OUNB — recursive catalog walk
-- RGB (Russian State Library) — Session + CSRF handling
-- TsGA Moscow (Bitrix CMS) — CSS selectors needed
-- GAKO (Kaluga Archive) — JSON API analysis pending
-
-### 🔍 Under Research (2 sources)
-- **Rosarchiv** (Federal archives system via GIS UIAD) — 20M+ documents
-- **RGADA** (Ancient Acts Archive) — ~1,000 rare XVI–XVII century cartographic drawings
-
-### ❌ Unavailable (4 sources)
-- GAPK /archive/ (geo-blocking for non-RU IPs)
-- Rosarchiv (closed API)
-- RGIA (requires registration)
-- RGVIA (reference service only)
-
----
-
-## 📈 Metrics
-
-| Metric | Value |
-|--------|-------|
-| Ready sources | 5 |
-| Partial sources | 7 |
-| Under research | 2 |
-| Unavailable | 4 |
-| **Total archives** | **18** |
-| | |
-| Territories covered | 49 |
-| Keywords | 5+ |
-| Expected records | ~5,000–6,000 |
-| After expansion | ~6,000–7,000 |
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
 ```bash
-Python 3.12+
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-### Run Full Search
+Для браузерного адаптера НЭБ дополнительно потребуется установить Chromium
+Playwright в локальной среде. Эта операция намеренно не выполняется CI.
+
+## Проверка после клонирования
+
 ```bash
-# All 5 ready sources × 49 territories × 5 keywords = 1,127 combinations
-python run_search.py --source all --run-dir output/full_search_20260721
-
-# Single source test
-python run_search.py --source gayao --run-dir output/test_gayao
-
-# Dry-run (no Notion write)
-python run_search.py --source all --dry-run
+python -B -m unittest discover -s tests -t . -v
 ```
 
-### Output
-Results are saved to:
-- `output/full_search_YYYYMMDD/results.csv` — main results
-- `output/full_search_YYYYMMDD/review.csv` — full table for review
-- `output/full_search_YYYYMMDD/run.log` — execution log
+В текущей рабочей копии часть тестов с реальными HTML-снимками будет пропущена,
+если snapshots не предоставлены отдельно. Это ограничение набора данных, а не
+успешность сетевого доступа.
 
----
+## Запуск поиска
 
-## 📁 Project Structure
+Все команды выполняются из корня проекта:
 
-```
-archives-historical-maps-scraper/
-├── README.md                    # This file
-├── LICENSE                      # CC BY 4.0
-├── requirements.txt             # Python dependencies
-├── run_search.py               # Main orchestrator (2,059 combinations)
-│
-├── modules/
-│   ├── scrapers/               # Archive scrapers
-│   │   ├── searcher_gpib.py    # ✅ State Public Historical Library
-│   │   ├── searcher_gayao.py   # ✅ Yaroslavl State Archive
-│   │   ├── searcher_neb.py     # ✅ National Electronic Library
-│   │   ├── searcher_rnb_kart.py # ✅ Russian National Library
-│   │   ├── searcher_gapk.py    # ✅ Perm Regional Archives
-│   │   ├── searcher_garf_fixed.py     # ⚠️ Federal Archive (partial)
-│   │   ├── searcher_kaluga_fixed.py   # ⚠️ Kaluga Library (partial)
-│   │   └── ... (5 more partial)
-│   │
-│   ├── territories.py           # 49 territories (gubernias + uezds)
-│   ├── registry.py             # Unified scraper interface
-│   └── archive_health.py       # Health monitoring
-│
-├── docs/
-│   ├── МЕТОДОЛОГИЯ_СТАТЬИ.md   # Scientific methodology (22 KB)
-│   ├── БЕЗ_VPN_ДОРАБОТКА_СКРИПТОВ.md    # Developer guides (17 KB)
-│   ├── БЕЗ_VPN_ГЛОБАЛЬНЫЙ_ПОИСК.md      # Operator instructions (11 KB)
-│   └── ЗАПРОС_ДЛЯ_ДИРЕКТОРОВ.md        # Letter templates for archive directors
-│
-└── output/                      # Results (.gitignored)
-    └── full_search_YYYYMMDD/
-        ├── results.csv
-        ├── review.csv
-        └── run.log
+```bash
+# планирование комбинаций без записи результатов и Notion
+python -B scripts/run_search.py --dry-run --source all
+
+# локальный сбор в output/; запись в Notion отключена
+python -B scripts/run_search.py --source all --no-notion --run-dir local_run
+
+# проверка одного адаптера
+python -B scripts/check_source.py neb
+
+# просмотр review.csv конкретного запуска
+python -B scripts/review.py output/local_run
 ```
 
----
+Переменная `NOTION_TOKEN` используется только локальными maintenance-скриптами
+и основным оркестратором при явно разрешённой записи. Образец переменных находится
+в `.env.example`; реальные значения в репозиторий не помещаются.
 
-## 🛠️ Browser Automation Techniques
+## Методика и provenance
 
-This project implements **5 distinct scraping methods** verified through deep research:
+Каждый производный результат должен сохранять URL, дату получения, локатор,
+статус доступа и связь с исходным запросом. Неопределённые или неполные поля
+помечаются для review, а не заполняются предположением. Обзор применяемых
+инструментов находится в `ОБЗОР_ИНСТРУМЕНТОВ_ДОСТУПА_20260913.md`.
 
-### 1. REST API (GET requests)
-Used by: GAYAO, НЕБ, ГАПК  
-Fast, reliable, no browser needed.
+## GitHub Actions
 
-### 2. POST Forms (windows-1251 encoding)
-Used by: РНБ, Веб-ИРБИС archives  
-Legacy systems require explicit encoding handling.
+`.github/workflows/search.yml` выполняет только установку зависимостей и
+локальные тесты. Он не использует `NOTION_TOKEN`, не выполняет сетевой сбор и не
+коммитит результаты обратно в репозиторий.
 
-### 3. WebDriver (Selenium)
-Used by: GPIB  
-Dynamic JavaScript rendering, full DOM access.
+## Лицензия
 
-### 4. Playwright (AJAX auto-waiting)
-Recommended for: Perm Regional Library, GAKO  
-Superior AJAX handling with `wait_until="networkidle"`.
-
-### 5. Recursive Walk (catalog traversal)
-Used by: Smolensk OUNB fallback  
-When no search API exists, crawl the hierarchy.
-
----
-
-## 📝 API Endpoints Reference
-
-| Archive | URL | Method | Auth | Rate Limit |
-|---------|-----|--------|------|-----------|
-| GPIB | https://gpib.ru | WebDriver | None | None |
-| GAYAO | https://af.yar-archives.ru/archive/search | GET | None | 2s/req |
-| РНБ карты | https://nlr.ru/rlin/kartogr18.php | POST | None | 2s/req |
-| НЭБ | https://rusneb.ru/search/ | GET | None | 2s/req (retry 3×) |
-| ГАПК | https://archives.permkrai.ru/archive1/funds | GET | None | 1.5s/req |
-| РГАДА | https://www.rgada.info | N/A yet | N/A | N/A |
-| Росархив | https://www.rusarchives.ru (GIS UIAD) | N/A yet | N/A | N/A |
-
----
-
-## 🎓 Scientific Methodology
-
-This project is based on a full **research methodology** with:
-- 49 territorial units (historical gubernias + modern districts)
-- 5+ cartographic keywords (карта, план, атлас, съёмка, чертёж)
-- Deduplication across sources
-- Temporal filtering (1700–1920)
-- Results: ~3,600 unique records from primary sources
-
-**See `docs/МЕТОДОЛОГИЯ_СТАТЬИ.md` for full academic writeup.**
-
----
-
-## 🐛 Contributing
-
-### For Operators (Running Searches)
-See `docs/БЕЗ_VPN_ГЛОБАЛЬНЫЙ_ПОИСК.md` — no VPN required.
-
-### For Developers (Adding Sources)
-See `docs/БЕЗ_VPN_ДОРАБОТКА_СКРИПТОВ.md` — step-by-step guides for all 7 partial sources.
-
-### For Researchers (Expanding)
-1. File issues with archive names
-2. Provide DevTools Network analysis (GET/POST structure)
-3. Or send letter templates (`docs/ЗАПРОС_ДЛЯ_ДИРЕКТОРОВ.md`) to archive directors
-
----
-
-## 📞 Contact & Collaboration
-
-- **Research collaboration:** Open issues for archive recommendations or methodology improvements
-- **Archive directors:** Use letter templates in `docs/ЗАПРОС_ДЛЯ_ДИРЕКТОРОВ.md` to request API access
-- **Bug reports:** Include archive name, search query, and error logs from `output/*/run.log`
-
----
-
-## 📄 License
-
-This work is licensed under the **Creative Commons Attribution 4.0 International License**.  
-You are free to:
-- ✅ Share, copy, redistribute the material
-- ✅ Adapt, remix, transform, build upon the material
-- ✅ Use commercially
-
-**With the condition:**
-- 📌 **Attribution** — Credit the author(s) in any derivative works or publications
-
-See `LICENSE` file for full details: https://creativecommons.org/licenses/by/4.0/
-
----
-
-## 🙏 Acknowledgments
-
-This project integrates search capabilities from:
-- Государственная публичная историческая библиотека (GPIB)
-- Государственный архив Ярославской области (GAYAO)
-- Российская национальная библиотека (RNB)
-- Национальная электронная библиотека (NEB)
-- Государственный архив Пермского края (GAPK)
-- And 7 additional partial sources under development
-
----
-
-## 📊 Project Statistics
-
-- **Lines of code:** ~3,500
-- **Archives integrated:** 18 (5 ready, 7 partial, 2 research, 4 unavailable)
-- **Documentation:** 9 files, ~100 KB
-- **Territories:** 49 (historical regions)
-- **Search combinations:** 2,059+
-- **Expected records:** 5,000–7,000 unique cartographic materials
-
----
-
-**Last Updated:** 2026-07-21  
-**Status:** ✅ Production Ready (5/5 ready sources verified)  
-**Next Phase:** Expand to 18 archives with partial sources + director collaboration
-
-🗺️ **Contributing to Russian historical cartography research**
+См. [LICENSE](LICENSE).
