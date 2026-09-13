@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).parent / "modules"))
 sys.stdout.reconfigure(encoding="utf-8")
 # Bulk runs must not request every PRLIB detail card. The standalone card
 # parser remains detailed by default for targeted/manual review and tests.
-os.environ.setdefault("IGIS_BULK_MODE", "1")
+os.environ.setdefault("IGIS_BULK_MODE", "0")
 
 from territories import GUBERNIA_QUERIES, UYEZD_QUERIES
 from triggers import PRIMARY
