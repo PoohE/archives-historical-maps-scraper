@@ -19,6 +19,7 @@
   all        — все источники (по умолчанию)
 """
 import re
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Iterator
@@ -93,7 +94,7 @@ PRLIB_BASE   = "https://prlib.ru"
 
 # Массовый прогон сохраняет выдачу без запроса каждой карточки. Детальные
 # карточки PRLIB требуют отдельного rate-limited review и могут вернуть 403.
-PRLIB_FETCH_DETAILS_IN_BULK = False
+PRLIB_FETCH_DETAILS_IN_BULK = os.getenv("IGIS_BULK_MODE", "0") == "1"
 
 def _prlib_detail_record(url: str) -> LibraryRecord:
     try:
