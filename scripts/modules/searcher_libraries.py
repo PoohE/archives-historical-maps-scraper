@@ -621,6 +621,11 @@ GPIB_OPAC_PARAMS = {
     "S21P01": "0", "S21P02": "1", "S21P03": "I=", "S21STR": "",
 }
 
+# Связанные издания вторичны для массового сбора. По умолчанию не выполняем
+# дополнительные запросы: отдельный URL сохраняется, а обогащение выполняется
+# позднее в ручном review-процессе.
+GPIB_MAX_EDITION_FETCHES = 0
+
 
 def _parse_gpib_node(url: str, timeout: float = 25.0) -> dict[str, object]:
     """Читает метаданные карточки ГПИБ и связанные издания.
@@ -775,7 +780,7 @@ def _search_gpib(query: str, year_from: int | None, year_to: int | None,
             for ed_idx, ed in enumerate(edition_items):
                 if not isinstance(ed, dict) or not ed.get("url"):
                     continue
-                if ed_idx >= 3:
+                if ed_idx >= GPIB_MAX_EDITION_FETCHES:
                     editions.append(ed)
                     continue
                 try:
