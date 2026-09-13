@@ -91,12 +91,30 @@ def _in_year_range(y_from: int | None, y_to: int | None,
 PRLIB_SEARCH = "https://prlib.ru/collections/467000/search"
 PRLIB_BASE   = "https://prlib.ru"
 
+# Массовый прогон сохраняет выдачу без запроса каждой карточки. Детальные
+# карточки PRLIB требуют отдельного rate-limited review и могут вернуть 403.
+PRLIB_FETCH_DETAILS_IN_BULK = False
+
 def _prlib_detail_record(url: str) -> LibraryRecord:
     try:
         from .prlib_card import fetch_card
     except ImportError:
         from prlib_card import fetch_card
     return LibraryRecord(**fetch_card(url))
+
+
+def _prlib_summary_record(url: str, title: str,
+                          year_from: int | None = None,
+                          year_to: int | None = None) -> LibraryRecord:
+    return LibraryRecord(
+        title=title,
+        year_from=year_from,
+        year_to=year_to,
+        description="Детальная карточка не запрошена в массовом прогоне; требуется review.",
+        url=url,
+        library_id="prlib",
+        library_name="Президентская библиотека",
+    )
 
 def _search_prlib(query: str, year_from: int | None, year_to: int | None,
                   max_pages: int) -> Iterator[LibraryRecord]:
@@ -145,7 +163,9 @@ def _search_prlib(query: str, year_from: int | None, year_to: int | None,
                 if item_url in seen:
                     continue
                 seen.add(item_url)
-                rec = _prlib_detail_record(item_url)
+                rec = (_prlib_detail_record(item_url)
+                       if PRLIB_FETCH_DETAILS_IN_BULK
+                       else _prlib_summary_record(item_url, title))
                 if _in_year_range(rec.year_from, rec.year_to, year_from, year_to):
                     yield rec
             break
@@ -182,7 +202,9 @@ def _search_prlib(query: str, year_from: int | None, year_to: int | None,
             # Only item links belong to the detail adapter; no collection-page guesses.
             if not re.search(r'/item/\d+/?$', item_url):
                 continue
-            rec = _prlib_detail_record(item_url)
+            rec = (_prlib_detail_record(item_url)
+                   if PRLIB_FETCH_DETAILS_IN_BULK
+                   else _prlib_summary_record(item_url, title, y_from, y_to))
             if _in_year_range(rec.year_from, rec.year_to, year_from, year_to):
                 yield rec
 
