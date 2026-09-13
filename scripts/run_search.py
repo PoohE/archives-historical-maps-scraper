@@ -198,7 +198,12 @@ def main():
     print(f"ПОИСК ИГИС: 4 губернии, {YEAR_FROM}–{YEAR_TO}")
     print(f"Территорий: {len(territories)}  |  Ключевых слов: {len(KEYWORDS)}")
     print(f"Источников: {len(sources)}  |  Всего комбинаций: {total_combos}")
-    print(f"Режим: {'DRY-RUN (без записи в Notion)' if args.dry_run else 'ПОЛНЫЙ (запись в Notion)'}")
+    mode = (
+        "DRY-RUN (без записи в Notion)" if args.dry_run
+        else "ПОИСК + CSV (без записи в Notion)" if args.no_notion
+        else "ПОЛНЫЙ (запись в Notion)"
+    )
+    print(f"Режим: {mode}")
     print(f"Папка:     output/{run_dir.name}/")
     print(f"{'='*60}\n")
 
