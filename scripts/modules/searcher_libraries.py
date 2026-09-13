@@ -49,9 +49,10 @@ class LibraryRecord:
 
 # ── общие утилиты ────────────────────────────────────────────────────────────
 
-def _get(url: str, params: dict | None = None, delay: float = 2.0) -> requests.Response:
+def _get(url: str, params: dict | None = None, delay: float = 2.0,
+         timeout: float = 25.0) -> requests.Response:
     time.sleep(delay)
-    resp = requests.get(url, params=params, headers={"User-Agent": UA}, timeout=25)
+    resp = requests.get(url, params=params, headers={"User-Agent": UA}, timeout=timeout)
     resp.raise_for_status()
     return resp
 
@@ -621,14 +622,14 @@ GPIB_OPAC_PARAMS = {
 }
 
 
-def _parse_gpib_node(url: str) -> dict[str, object]:
+def _parse_gpib_node(url: str, timeout: float = 25.0) -> dict[str, object]:
     """Читает метаданные карточки ГПИБ и связанные издания.
 
     Карточка карты хранит связь в строке «Издание (для иллюстраций)».
     Возвращаем только публичные библиографические поля и URL; авторизацию и
     содержимое страниц просмотра не запрашиваем.
     """
-    resp = _get(url, delay=2.0)
+    resp = _get(url, delay=2.0, timeout=timeout)
     soup = BeautifulSoup(resp.text, "lxml")
     meta: dict[str, str] = {}
     links: list[dict[str, str]] = []
@@ -669,9 +670,9 @@ def _parse_gpib_node(url: str) -> dict[str, object]:
     }
 
 
-def _parse_gpib_edition(url: str) -> dict[str, object]:
+def _parse_gpib_edition(url: str, timeout: float = 8.0) -> dict[str, object]:
     """Извлекает библиографические параметры связанного издания ГПИБ."""
-    data = _parse_gpib_node(url)
+    data = _parse_gpib_node(url, timeout=timeout)
     meta = data.get("meta", {})
     if not isinstance(meta, dict):
         meta = {}
@@ -766,8 +767,16 @@ def _search_gpib(query: str, year_from: int | None, year_to: int | None,
             edition_links = detail.get("edition_links", []) if isinstance(detail, dict) else []
             image_urls = detail.get("image_urls", []) if isinstance(detail, dict) else []
             editions: list[dict[str, object]] = []
-            for ed in edition_links if isinstance(edition_links, list) else []:
+            # Связанные издания — вторичное обогащение. Ограничиваем число
+            # сетевых запросов на карточку, чтобы один медленный/недоступный
+            # URL не блокировал checkpoint всего прогона. Все остальные URL
+            # сохраняются в исходной форме без обогащения.
+            edition_items = edition_links if isinstance(edition_links, list) else []
+            for ed_idx, ed in enumerate(edition_items):
                 if not isinstance(ed, dict) or not ed.get("url"):
+                    continue
+                if ed_idx >= 3:
+                    editions.append(ed)
                     continue
                 try:
                     editions.append(_parse_gpib_edition(str(ed["url"])))
