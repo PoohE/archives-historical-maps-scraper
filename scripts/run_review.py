@@ -30,7 +30,7 @@ import csv
 import json
 import re
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -261,6 +261,14 @@ def main() -> None:
         for g in review:
             f.write(json.dumps(g["entry"], ensure_ascii=False) + "\n")
 
+    by_source = defaultdict(lambda: {"auto_keep": 0, "to_review": 0, "dropped": 0})
+    for g in accepted:
+        by_source[g["entry"].get("source", "")]["auto_keep"] += 1
+    for g in review:
+        by_source[g["entry"].get("source", "")]["to_review"] += 1
+    for g, _reason in dropped:
+        by_source[g["entry"].get("source", "")]["dropped"] += 1
+
     report = {
         "run_dir": str(run_dir),
         "input_records": len(entries),
@@ -273,6 +281,7 @@ def main() -> None:
             "dropped": len(dropped),
         },
         "drop_reasons": dict(reasons),
+        "by_source": {k: by_source[k] for k in sorted(by_source)},
         "params": {"lower_year": args.lower_year, "upper_year": args.upper_year},
     }
     (out / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2),
@@ -282,6 +291,11 @@ def main() -> None:
     print(f"  записей: {len(entries)}  → уникальных: {len(order)}  (схлопнуто дублей: {dup_collapsed})")
     print(f"  авто-оставить: {len(accepted)}  |  на ручную проверку: {len(review)}  |  отсеяно: {len(dropped)}")
     print(f"  причины отсева: {dict(reasons)}")
+    if len(by_source) > 1:
+        print("  по источникам (оставить / проверить / отсеять):")
+        for k in sorted(by_source):
+            b = by_source[k]
+            print(f"    {k or '—'}: {b['auto_keep']} / {b['to_review']} / {b['dropped']}")
     print(f"  → {out}")
 
 
