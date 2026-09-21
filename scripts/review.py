@@ -53,7 +53,7 @@ def save_progress(run_dir: Path, seen: set[str]) -> None:
 
 def append_to_results(run_dir: Path, rows: list[list]) -> None:
     """Добавляет подтверждённые записи в results.csv."""
-    results_path = run_dir / "results.csv"
+    results_path = run_dir / ("search_audit.csv" if (run_dir / "search_audit.csv").exists() else "results.csv")
     mode = "a" if results_path.exists() else "w"
     with open(results_path, mode, newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f)
@@ -61,6 +61,38 @@ def append_to_results(run_dir: Path, rows: list[list]) -> None:
             writer.writerow(["Источник", "Территория", "Ключевое слово",
                              "Название", "Год от", "Год до", "URL", "Описание"])
         writer.writerows(rows)
+
+
+def append_accepted_entries(run_dir: Path, confirmed_urls: set[str]) -> int:
+    """Дозаписывает подтверждённые entry-записи в accepted_records.jsonl.
+
+    Работает только когда рядом лежит review_records.jsonl (корзина run_review.py).
+    Для старых прогонов без этого файла — no-op (обратная совместимость).
+    """
+    rr = run_dir / "review_records.jsonl"
+    if not rr.exists() or not confirmed_urls:
+        return 0
+    acc = run_dir / "accepted_records.jsonl"
+    existing: set[str] = set()
+    if acc.exists():
+        for ln in acc.read_text(encoding="utf-8").splitlines():
+            if ln.strip():
+                try:
+                    existing.add(json.loads(ln).get("record", {}).get("url", ""))
+                except json.JSONDecodeError:
+                    pass
+    added = 0
+    with acc.open("a", encoding="utf-8") as f:
+        for ln in rr.read_text(encoding="utf-8-sig").splitlines():
+            if not ln.strip():
+                continue
+            entry = json.loads(ln)
+            url = entry.get("record", {}).get("url", "")
+            if url in confirmed_urls and url not in existing:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+                existing.add(url)
+                added += 1
+    return added
 
 
 def extract_words(titles: list[str]) -> Counter:
@@ -132,7 +164,7 @@ def main() -> None:
         sys.exit(1)
 
     print(f"\n{'═'*60}")
-    print(f"ПРОВЕРКА СОМНИТЕЛЬНЫХ ИСТОЧНИКОВ")
+    print("ПРОВЕРКА СОМНИТЕЛЬНЫХ ИСТОЧНИКОВ")
     print(f"Папка: {run_dir.name}")
     print(f"{'═'*60}")
     print("  [Enter] — карта (включить)  |  n — не карта  |  s — пропустить  |  q — выйти")
@@ -171,6 +203,9 @@ def main() -> None:
             print(f"  Год:     {yr}")
         if desc:
             print(f"  Описание: {desc}")
+        prich = row.get("Причина", "")
+        if prich:
+            print(f"  ⚠ Причина: {prich}")
         print(f"  URL:     {url}")
 
         ans = input("→ ").strip().lower()
@@ -198,6 +233,10 @@ def main() -> None:
     if confirmed_rows:
         append_to_results(run_dir, confirmed_rows)
         print(f"\n  ✓ Добавлено в results.csv: {len(confirmed_rows)} записей")
+        confirmed_urls = {r[6] for r in confirmed_rows if r[6]}
+        n_acc = append_accepted_entries(run_dir, confirmed_urls)
+        if n_acc:
+            print(f"  ✓ Дописано в accepted_records.jsonl: {n_acc} записей")
 
     print(f"\n  Отклонено: {len(rejected_titles)}  |  Пропущено: —")
 
