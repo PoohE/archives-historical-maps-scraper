@@ -1,5 +1,7 @@
 """Подготовка 91 записи ГПИБ для загрузки в Notion."""
-import csv, re, json
+import csv
+import json
+import re
 from pathlib import Path
 
 CSV = Path("output/cloud/results_fixed.csv")
@@ -99,7 +101,7 @@ for row in rows:
     if mr:
         props["Современные регионы"] = mr
     if slip:
-        props["Сомнительных"] = "да"
+        props["Статус приёмки"] = "кандидат"
         props["Примечания"] = "Возможное слипание слов — проверить вручную"
 
     pages.append(props)
@@ -108,12 +110,12 @@ with open("output/notion_upload.json", "w", encoding="utf-8") as f:
     json.dump(pages, f, ensure_ascii=False, indent=2)
 
 print(f"Записей: {len(pages)}")
-slip_count = sum(1 for p in pages if p.get("Сомнительных") == "да")
+slip_count = sum(1 for p in pages if "слипание" in p.get("Примечания", ""))
 print(f"Со слипанием (на проверку): {slip_count}")
 lang_cnt = {}
 for p in pages:
-    l = p.get("Язык", "?")
-    lang_cnt[l] = lang_cnt.get(l, 0) + 1
+    lang = p.get("Язык", "?")
+    lang_cnt[lang] = lang_cnt.get(lang, 0) + 1
 print(f"Языки: {lang_cnt}")
 al_cnt = {}
 for p in pages:

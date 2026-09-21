@@ -1,0 +1,473 @@
+{
+  "version": "2026-09-22.1",
+  "data_source_id": "decdf63c-6f64-4852-ada2-65e72c79d9bc",
+  "retrieved_at": "2026-09-13T20:10:11.844Z",
+  "schema_updates": [{"date": "2026-09-14", "property": "Год сведений", "type": "number", "basis": "Notion MCP read; remaining snapshot retained"}, {"date": "2026-09-22", "added": ["Статус приёмки", "Причина сомнительности"], "removed": ["Сомнительных", "Проверка комплементарности"], "basis": "review-run: статусный слой приёмки + причина сомнительности; Сомнительных/Проверка комплементарности удалены как избыточные"}],
+  "schema": {
+    "Год сведений": {
+      "type": "number",
+      "description": ""
+    },
+    "BB восток": {
+      "type": "number",
+      "description": ""
+    },
+    "BB запад": {
+      "type": "number",
+      "description": ""
+    },
+    "BB север": {
+      "type": "number",
+      "description": ""
+    },
+    "BB юг": {
+      "type": "number",
+      "description": ""
+    },
+    "DC Type": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "StillImage",
+        "Text",
+        "Dataset",
+        "StillImage+Text",
+        "Text+Dataset"
+      ]
+    },
+    "OCR (распознавание текста)": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "Нет",
+        "Частичное",
+        "Полное"
+      ]
+    },
+    "RMSE оцифровки (м)": {
+      "type": "number",
+      "description": ""
+    },
+    "Автор / составитель": {
+      "type": "text",
+      "description": ""
+    },
+    "Автор внесения": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "Алейников",
+        "Агент"
+      ]
+    },
+    "Административный уровень": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "Губерния",
+        "Уезд",
+        "Волость",
+        "Нас. пункт",
+        "Дача"
+      ]
+    },
+    "Архив [авто]": {
+      "type": "rollup",
+      "description": ""
+    },
+    "Архив хранения": {
+      "type": "relation",
+      "description": "",
+      "data_source": "collection://fedbea82-520d-4f03-b8bc-793a29a25e79"
+    },
+    "Библиографическое описание": {
+      "type": "text",
+      "description": "Полная ссылка по ГОСТ 7.1-2003, готовая к цитированию"
+    },
+    "Библиотечный шифр": {
+      "type": "text",
+      "description": "Код объекта хранения для библиотек/порталов: полочный/каталожный шифр, инвентарный номер, ББК/УДК"
+    },
+    "Векторизация": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "Нет",
+        "В работе",
+        "Готово"
+      ]
+    },
+    "Виды пространственного анализа": {
+      "type": "relation",
+      "description": "",
+      "data_source": "collection://8e94af4d-0135-47c6-bca6-c993bdc86424"
+    },
+    "Возможность векторизации": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "Высокая",
+        "Средняя",
+        "Низкая",
+        "Нецелесообразна"
+      ]
+    },
+    "Геопривязка: RMSE (м)": {
+      "type": "number",
+      "description": ""
+    },
+    "Геопривязка: метод": {
+      "type": "text",
+      "description": ""
+    },
+    "Геопривязка: статус": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "Не выполнена",
+        "Частично",
+        "Выполнена"
+      ]
+    },
+    "Год обновления / проверки": {
+      "type": "number",
+      "description": ""
+    },
+    "Год оцифровки": {
+      "type": "number",
+      "description": ""
+    },
+    "Год создания (верхняя)": {
+      "type": "number",
+      "description": ""
+    },
+    "Год создания (нижняя)": {
+      "type": "number",
+      "description": ""
+    },
+    "Дата внесения": {
+      "type": "date",
+      "description": ""
+    },
+    "Единица хранения": {
+      "type": "text",
+      "description": ""
+    },
+    "Исследовательские задачи": {
+      "type": "relation",
+      "description": "",
+      "data_source": "collection://32084eb7-71f2-4883-a414-c4fe6691bd4f"
+    },
+    "Картографическая проекция": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "Кассини",
+        "Бонне",
+        "Коническая",
+        "Многогранная",
+        "Гаусса-Крюгера",
+        "Меркатора",
+        "Другая",
+        "Не применима"
+      ]
+    },
+    "Качество сканирования": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "Высокое",
+        "Среднее",
+        "Низкое",
+        "Плохое"
+      ]
+    },
+    "Код типа [авто]": {
+      "type": "rollup",
+      "description": ""
+    },
+    "Листы / страницы": {
+      "type": "text",
+      "description": ""
+    },
+    "Лицензия": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "CC BY 4.0",
+        "CC0",
+        "Нет прав доступа",
+        "Архивное разрешение"
+      ]
+    },
+    "Масштаб (знаменатель)": {
+      "type": "number",
+      "description": ""
+    },
+    "Место создания": {
+      "type": "text",
+      "description": ""
+    },
+    "Место хранения": {
+      "type": "text",
+      "description": "Промежуточный уровень хранения (напр. папка), не укладывающийся в фонд-опись-дело"
+    },
+    "Название источника": {
+      "type": "title",
+      "description": ""
+    },
+    "Наличие текстового / табличного формата": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "Нет",
+        "Есть"
+      ]
+    },
+    "Номер в серии": {
+      "type": "text",
+      "description": ""
+    },
+    "Нулевой меридиан": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "Пулково",
+        "Санкт-Петербург",
+        "Москва",
+        "Париж",
+        "Ферро",
+        "Гринвич",
+        "Отсутствует",
+        "Другой"
+      ]
+    },
+    "Описание": {
+      "type": "text",
+      "description": ""
+    },
+    "Опись": {
+      "type": "text",
+      "description": ""
+    },
+    "Организация оцифровки": {
+      "type": "text",
+      "description": ""
+    },
+    "Оригинальный масштаб": {
+      "type": "text",
+      "description": ""
+    },
+    "Охватываемая территория": {
+      "type": "relation",
+      "description": "",
+      "data_source": "collection://3920ba89-eabe-8179-8e13-000be85ae51b"
+    },
+    "Примечания": {
+      "type": "text",
+      "description": ""
+    },
+    "Примечания по оцифровке": {
+      "type": "text",
+      "description": ""
+    },
+    "Прямая ссылка на файл изображения": {
+      "type": "url",
+      "description": ""
+    },
+    "Путь / URL к файлу": {
+      "type": "url",
+      "description": ""
+    },
+    "Размер листа (мм)": {
+      "type": "text",
+      "description": ""
+    },
+    "Размер файла (МБ)": {
+      "type": "number",
+      "description": ""
+    },
+    "Разрешение (DPI)": {
+      "type": "number",
+      "description": ""
+    },
+    "Связанное издание: URL": {
+      "type": "url",
+      "description": ""
+    },
+    "Связанное издание: автор / ответственность": {
+      "type": "text",
+      "description": ""
+    },
+    "Связанное издание: библиографическое описание": {
+      "type": "text",
+      "description": ""
+    },
+    "Связанное издание: год издания": {
+      "type": "number",
+      "description": ""
+    },
+    "Связанное издание: название": {
+      "type": "text",
+      "description": ""
+    },
+    "Связанное издание: тип": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "Атлас",
+        "Книга (монография)",
+        "Журнал",
+        "Сборник",
+        "Отчёт",
+        "Диссертация",
+        "Другое"
+      ]
+    },
+    "Серия / массив": {
+      "type": "relation",
+      "description": "",
+      "data_source": "collection://339a16aa-aa56-4bf5-8767-4eddb24cb16c"
+    },
+    "Система координат": {
+      "type": "text",
+      "description": ""
+    },
+    "Совместимые источники": {
+      "type": "text",
+      "description": ""
+    },
+    "Современные регионы": {
+      "type": "relation",
+      "description": "",
+      "data_source": "collection://9305e33b-2a9a-4484-bc47-53e43ef9a2e7"
+    },
+    "Статус приёмки": {
+      "type": "select",
+      "description": "кандидат → принято/отклонено; агент ставит кандидат, приёмщик — принято/отклонено",
+      "options": [
+        "кандидат",
+        "принято",
+        "отклонено"
+      ]
+    },
+    "Причина сомнительности": {
+      "type": "multi_select",
+      "description": "почему запись помечена на проверку (комбинируется)",
+      "options": [
+        "сомнительный тип",
+        "нет маркера карты",
+        "регион неясен",
+        "год не указан"
+      ]
+    },
+    "Ссылка на онлайн-архив": {
+      "type": "url",
+      "description": ""
+    },
+    "Статус доступа": {
+      "type": "select",
+      "description": "dcterms:accessRights + COAR Access Rights",
+      "options": [
+        "Открытый доступ",
+        "Эмбарго",
+        "Ограниченный доступ",
+        "Только метаданные"
+      ]
+    },
+    "Техника исполнения": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "Рукописная",
+        "Печатная",
+        "Гравюра",
+        "Литография",
+        "Хромолитография",
+        "Фотокопия",
+        "Другая"
+      ]
+    },
+    "Тип источника": {
+      "type": "relation",
+      "description": "",
+      "data_source": "collection://92034cc0-c3a9-42d9-ac69-d228aeb2efea"
+    },
+    "Тип привязки": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "Не привязан",
+        "Ручная (GCP)",
+        "Автоматическая",
+        "Фотограмметрия"
+      ]
+    },
+    "Типы отображаемых объектов": {
+      "type": "relation",
+      "description": "",
+      "data_source": "collection://cbf12b9c-f8b1-4b41-8bdb-41ef6944ff4a"
+    },
+    "Физическое состояние": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "Хорошее",
+        "Удовлетворительное",
+        "Плохое"
+      ]
+    },
+    "Фонд": {
+      "type": "text",
+      "description": ""
+    },
+    "Формат файла": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "TIFF",
+        "JPEG",
+        "PDF",
+        "PNG",
+        "Другой"
+      ]
+    },
+    "Цветность скана": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "Цветной",
+        "Оттенки серого",
+        "Чёрно-белый"
+      ]
+    },
+    "Число GCP": {
+      "type": "number",
+      "description": ""
+    },
+    "Шифр записи": {
+      "type": "formula",
+      "description": ""
+    },
+    "Язык": {
+      "type": "select",
+      "description": "",
+      "options": [
+        "Русский",
+        "Латинский",
+        "Немецкий",
+        "Французский",
+        "Английский",
+        "Польский",
+        "Голландский",
+        "Шведский",
+        "Итальянский",
+        "Другой"
+      ]
+    },
+    "№ п/п": {
+      "type": "auto_increment_id",
+      "description": ""
+    }
+  }
+}
