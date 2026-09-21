@@ -189,8 +189,11 @@ def main() -> None:
             dropped.append((g, "out_of_period"))
             reasons["out_of_period"] += 1
             continue
-        # 4) не картографический и не сомнительный → отсев
-        if cls == "negative":
+        # 4) не картографический → отсев ТОЛЬКО если запись НЕ в нашем регионе.
+        #    in_scope без маркера карты не выбрасываем: название часто не отражает
+        #    содержание (карта губернии/уезда часто озаглавлена просто именем
+        #    территории) — уводим на ручную проверку (ветка ниже).
+        if cls == "negative" and scope != "in_scope":
             dropped.append((g, "not_cartographic"))
             reasons["not_cartographic"] += 1
             continue
@@ -205,6 +208,8 @@ def main() -> None:
             tag = []
             if cls == "doubtful":
                 tag.append("сомнительный тип")
+            if cls == "negative":
+                tag.append("нет маркера карты")
             if scope == "unclear":
                 tag.append("регион неясен")
             if per is None:
