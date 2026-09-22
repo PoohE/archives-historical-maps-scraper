@@ -12,7 +12,6 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit, parse_qsl
-import requests
 from bs4 import BeautifulSoup
 
 try:
