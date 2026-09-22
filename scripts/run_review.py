@@ -44,17 +44,35 @@ from territories import UYEZD_QUERIES  # noqa: E402
 # ── Территориальный охват (из справочника territories.py) ─────────────────────
 GUB_STEMS = ("калуж", "перм", "смолен", "ярослав")
 
-# Чужие губернии/регионы — явный признак «не наш» (авто-отсев, если нет нашего стема)
+# Чужие губернии/регионы — явный признак «не наш» (авто-отсев, если нет нашего стема).
+# Формы с учётом склонений (Псков → «псков», Дон → «дону/дона/донск»).
 FOREIGN_STEMS = (
     "московск", "иркутск", "тверск", "орловск", "вологодск", "вятск", "костромск",
     "нижегородск", "тамбовск", "тульск", "рязанск", "владимирск", "новгородск",
-    "псковск", "петербург", "петроград", "харьковск", "киевск", "казанск",
+    "псковск", "псков", "петербург", "петроград", "харьковск", "киевск", "казанск",
     "самарск", "саратовск", "воронежск", "курск", "пензенск", "оренбургск",
     "архангельск", "астраханск", "таврическ", "херсонск", "полтавск", "черниговск",
     "минск", "витебск", "могилёвск", "могилевск", "виленск", "гродненск",
-    "лифляндск", "эстляндск", "курляндск", "ковенск", "варшавск", "сибир",
-    "кавказ", "область войска", "уральск",
+    "лифляндск", "эстляндск", "курляндск", "ковенск", "варшавск",
+    # NB: «Сибирь» НЕ отсеиваем — в XVIII–XIX вв. Пермский край часто проходил под
+    # именем «Сибирь» (решение пользователя 2026-09-22); Сибирь-в-названии → на проверку.
+    "кавказ", "область войска", "уральск", "екатеринослав", "подольск", "волынск",
+    "дону", "дона", "донск", "на дону",
 )
+
+# Жанры заведомо-«не карта» (жёсткий отсев). НЕ включаем путешествия / путевые записки /
+# дневники / летописи и их ОПИСАНИЯ — внутри них бывают карты нашего региона (решение
+# пользователя 2026-09-22), поэтому такие уходят на ручную проверку, а не в отсев.
+NEGATIVE_GENRE = (
+    "пещер", "житие", "репортёр", "репортер", "репортаж", "открытк",
+)
+
+_YEAR_RE = re.compile(r"\b(1[5-9]\d{2}|20\d{2})\b")
+
+
+def title_year_over(title: str, hi: int) -> bool:
+    """True, если в самом названии есть год позднее верхней планки (напр. «… 2014»)."""
+    return any(int(y) > hi for y in _YEAR_RE.findall(title or ""))
 
 
 def _uyezd_stem(name: str) -> str:
@@ -77,6 +95,9 @@ def norm_text(*parts) -> str:
 def scope_tag(rec: dict) -> str:
     """in_scope | foreign | unclear — по нашим/чужим топонимам в названии+описании."""
     hay = norm_text(rec.get("title"), rec.get("description"), rec.get("place"))
+    # Ростов-на-Дону — чужой, несмотря на совпадение со стемом уезда «ростов»
+    if "ростов" in hay and "дон" in hay:
+        return "foreign"
     if any(s in hay for s in IN_SCOPE_STEMS):
         return "in_scope"
     if any(s in hay for s in FOREIGN_STEMS):
@@ -119,6 +140,50 @@ def load_existing(path: Path | None) -> tuple[set, set]:
     urls = {norm_url(u) for u in data.get("urls", []) if u}
     keys = set(data.get("keys", []))
     return urls, keys
+
+
+def decide(rec: dict, source: str, ex_urls: set, ex_keys: set,
+           lo: int, hi: int) -> tuple[str, str]:
+    """Решение по одной записи: (bucket, reason).
+
+    bucket ∈ {in_notion, drop, keep, review}; reason — причина отсева либо теги проверки.
+    Чистая функция без ввода-вывода — покрыта регрессионным тестом
+    tests/test_run_review_filter.py (защита «чтобы ошибка не повторялась»).
+    """
+    u = norm_url(rec.get("url", ""))
+    if (u and u in ex_urls) or (sec_key(source, rec) in ex_keys):
+        return "in_notion", "already_in_notion"
+    title = rec.get("title") or ""
+    title_l = norm_text(title)
+    scope = scope_tag(rec)
+    per = period_ok(rec, lo, hi)
+    cls = classify(title)
+    # чужой регион → отсев
+    if scope == "foreign":
+        return "drop", "out_of_scope"
+    # жанр «не карта» (пещера/летопись/дневник/путешествие…) → отсев даже в нашем регионе
+    if any(g in title_l for g in NEGATIVE_GENRE):
+        return "drop", "not_cartographic"
+    # вне периода: по полю года ИЛИ по году в самом названии (напр. «… 2014»)
+    if per is False or title_year_over(title, hi):
+        return "drop", "out_of_period"
+    # не картографический и вне нашего региона → отсев (в регионе — не выбрасываем)
+    if cls == "negative" and scope != "in_scope":
+        return "drop", "not_cartographic"
+    # уверенная карта нашего региона в периоде → авто-оставить
+    if cls == "positive" and scope == "in_scope" and per in (True, None):
+        return "keep", "auto_keep"
+    # остальное — на ручную проверку с пояснением
+    tags = []
+    if cls == "doubtful":
+        tags.append("сомнительный тип")
+    if cls == "negative":
+        tags.append("нет маркера карты")
+    if scope == "unclear":
+        tags.append("регион неясен")
+    if per is None:
+        tags.append("год не указан")
+    return "review", ", ".join(tags) or "проверить"
 
 
 def main() -> None:
@@ -165,58 +230,19 @@ def main() -> None:
     for key in order:
         g = groups[key]
         e = g["entry"]
-        rec = e.get("record", {})
-        u = g["url"]
-        title = rec.get("title") or ""
-
-        # 1) уже в Notion
-        if (u and u in ex_urls) or (sec_key(e.get("source", ""), rec) in ex_keys):
-            dropped.append((g, "already_in_notion"))
-            reasons["already_in_notion"] += 1
-            continue
-
-        scope = scope_tag(rec)
-        per = period_ok(rec, args.lower_year, args.upper_year)
-        cls = classify(title)
-
-        # 2) явно чужой регион и нет наших топонимов → отсев
-        if scope == "foreign":
-            dropped.append((g, "out_of_scope"))
-            reasons["out_of_scope"] += 1
-            continue
-        # 3) явно вне периода (год указан и не попадает)
-        if per is False:
-            dropped.append((g, "out_of_period"))
-            reasons["out_of_period"] += 1
-            continue
-        # 4) не картографический → отсев ТОЛЬКО если запись НЕ в нашем регионе.
-        #    in_scope без маркера карты не выбрасываем: название часто не отражает
-        #    содержание (карта губернии/уезда часто озаглавлена просто именем
-        #    территории) — уводим на ручную проверку (ветка ниже).
-        if cls == "negative" and scope != "in_scope":
-            dropped.append((g, "not_cartographic"))
-            reasons["not_cartographic"] += 1
-            continue
-
-        # 5) маршрутизация оставшихся
-        if cls == "positive" and scope == "in_scope" and per in (True, None):
+        bucket, reason = decide(e.get("record", {}), e.get("source", ""),
+                                ex_urls, ex_keys, args.lower_year, args.upper_year)
+        if bucket == "keep":
             g["bucket_reason"] = "auto_keep"
             accepted.append(g)
             reasons["auto_keep"] += 1
-        else:
-            # сомнительное / регион неясен / год неясен → ручная проверка
-            tag = []
-            if cls == "doubtful":
-                tag.append("сомнительный тип")
-            if cls == "negative":
-                tag.append("нет маркера карты")
-            if scope == "unclear":
-                tag.append("регион неясен")
-            if per is None:
-                tag.append("год не указан")
-            g["bucket_reason"] = ", ".join(tag) or "проверить"
+        elif bucket == "review":
+            g["bucket_reason"] = reason
             review.append(g)
             reasons["to_review"] += 1
+        else:  # drop / in_notion
+            dropped.append((g, reason))
+            reasons[reason] += 1
 
     # ── Запись выходов ────────────────────────────────────────────────────────
     def _row(g):
