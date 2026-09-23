@@ -156,6 +156,14 @@ def archives_map() -> dict[str, str]:
     return out
 
 
+# Алиасы держателей: подпись карточки -> аббревиатура справочника «Архивы»
+HOLDER_ALIASES = {"иркутская огунб": "иогунб"}
+# Д2: архивный шифр в держателе («РГИА.Ф. 1290. Оп.4. Д.68») -> Архив + Фонд/Опись/Единица
+SHELFMARK_RE = re.compile(
+    r"^([А-ЯЁа-яё]{2,15})[.,]?\s*Ф\.?\s*(\d+[а-яё]?)\.?\s*Оп\.?\s*(\d+[а-яё]?)\.?"
+    r"(?:\s*Д\.?\s*([\d\-]+[а-яё]?))?", re.I)
+
+
 def page_id_from_url(u: str) -> str:
     m = re.search(r"([0-9a-f]{32})", (u or "").replace("-", ""))
     if not m:
@@ -178,12 +186,22 @@ def relation_props(rels: list[dict], arch_map: dict[str, str], unresolved: list[
     for rel in rels:
         prop = rel.get("property", "")
         if prop == "Архив хранения":
-            label = (rel.get("source_label") or "").strip().lower()
+            raw = (rel.get("source_label") or "").strip()
+            label = HOLDER_ALIASES.get(raw.lower(), raw.lower())
             pid = arch_map.get(label)
             if pid:
                 props[prop] = {"relation": [{"id": pid}]}
-            elif label:
-                unresolved.append(f"Архив хранения: «{rel.get('source_label')}»")
+                continue
+            # Д2: держатель = архивный шифр -> Архив (по аббревиатуре) + Фонд/Опись/Единица
+            m = SHELFMARK_RE.match(raw)
+            if m and m[1].lower() in arch_map:
+                props[prop] = {"relation": [{"id": arch_map[m[1].lower()]}]}
+                props["Фонд"] = {"rich_text": chunks(m[2])}
+                props["Опись"] = {"rich_text": chunks(m[3])}
+                if m[4]:
+                    props["Единица хранения"] = {"rich_text": chunks(m[4])}
+            elif raw:
+                unresolved.append(f"Архив хранения: «{raw}»")
         elif rel.get("target_url"):
             pid = page_id_from_url(rel["target_url"])
             if pid and prop in PROPS:
