@@ -244,6 +244,10 @@ def main() -> None:
             if p is not None:
                 props[col] = p
         props.update(relation_props(relations.get(url, []), arch_map, unresolved))
+        # Д18-страж: «Номер в серии» только вместе с «Серия / массив» — иначе отбросить
+        # (том без серии = нарушение; серию линкует детектор A / регистрирует эксперт).
+        if "Номер в серии" in props and "Серия / массив" not in props:
+            props.pop("Номер в серии")
         title = r.get("Название источника", "")[:60]
         existing = find_page(url)
 
