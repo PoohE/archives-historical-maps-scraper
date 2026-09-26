@@ -40,7 +40,7 @@ sys.path.insert(0, str(HERE / "modules"))
 
 from triggers import (  # noqa: E402
     classify, has_map_inside, is_settlement_subject, is_military,
-    is_office, is_travelogue, is_series_alias,
+    is_office, is_travelogue, is_series_alias, is_map_collection, is_archival_opis,
 )
 from territories import UYEZD_QUERIES  # noqa: E402
 
@@ -128,11 +128,20 @@ def scope_tag(rec: dict) -> str:
     return "unclear"
 
 
+# Мусорные query-параметры (трекинг/представление) — отбрасываем при нормализации URL.
+# Значимые id БЫВАЮТ в query (РГАДА: index2.php?str=1354-opis_342-1) — их сохраняем.
+_URL_NOISE_PARAMS = {"pvs", "from", "sort", "language", "lang",
+                     "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"}
+
+
 def norm_url(url: str) -> str:
     if not url:
         return ""
-    u = url.strip().lower()
-    u = u.split("#")[0].split("?")[0]
+    u = url.strip().lower().split("#")[0]
+    if "?" in u:
+        base, query = u.split("?", 1)
+        kept = [p for p in query.split("&") if p and p.split("=", 1)[0] not in _URL_NOISE_PARAMS]
+        u = base + ("?" + "&".join(sorted(kept)) if kept else "")
     return u.rstrip("/")
 
 
@@ -179,6 +188,8 @@ def decide(rec: dict, source: str, ex_urls: set, ex_keys: set,
     title = rec.get("title") or ""
     title_l = norm_text(title)
     text = norm_text(title, rec.get("description"), rec.get("place"))
+    # для контентных признаков (планы дач/межевание) учитываем и URL (у РГАДА «планы дач» в URL)
+    content = norm_text(title, rec.get("description"), rec.get("place"), rec.get("url"))
     scope = scope_tag(rec)
     per = period_ok(rec, lo, hi)
     cls = classify(title)
@@ -195,6 +206,9 @@ def decide(rec: dict, source: str, ex_urls: set, ex_keys: set,
     # 4. карта ВНУТРИ источника (наш регион/неясно, в периоде) → keep (перебивает жанровые drop)
     if has_map_inside(text) and scope in ("in_scope", "unclear"):
         return "keep", "map_inside"
+    # 4b. коллекция карт: планы дач / межевание (Генмежевание, A3/C1) → keep (РГАДА Ф.1354)
+    if is_map_collection(content) and scope in ("in_scope", "unclear"):
+        return "keep", "map_collection"
     # 5. субъект = отдельный населённый пункт (город/село) → отсев (уезд/губ — лишь адрес)
     if is_settlement_subject(title_l):
         return "drop", "settlement_subject"
@@ -210,8 +224,11 @@ def decide(rec: dict, source: str, ex_urls: set, ex_keys: set,
     # 9. травелог о нашей территории → keep (основной формат геоописания эпохи)
     if is_travelogue(title_l) and scope == "in_scope":
         return "keep", "travelogue"
-    # 10. не картографический и вне нашего региона → отсев
+    # 10. не картографический и вне нашего региона → отсев,
+    #     КРОМЕ архивных описей «Ф. N оп. M» — они могут содержать наши карты → на проверку
     if cls == "negative" and scope != "in_scope":
+        if is_archival_opis(title_l):
+            return "review", "проверить опись"
         return "drop", "not_cartographic"
     # 11. уверенная карта нашего региона в периоде → авто-оставить
     if cls == "positive" and scope == "in_scope" and per in (True, None):

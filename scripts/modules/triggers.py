@@ -136,9 +136,29 @@ SERIES_ALIASES: tuple[str, ...] = (
 )
 
 
+# Картографическая коллекция (Генмежевание: планы дач/межевание) → keep (РГАДА, случай Ф.1354)
+MAP_COLLECTION: tuple[str, ...] = (
+    "план дач", "планы дач", "планов дач", "планами дач",
+    "межевани", "генеральное межевание", "генерального межевания",
+    "специального межевания", "межевой план", "межевые планы",
+)
+
+# Архивная опись «Ф. N, оп. M» → не отсеивать жёстко на cls (может содержать наши карты) → review
+_ARCHIVAL_OPIS_RE = _re.compile(r"\bф\.?\s*\d+.{0,8}\bоп")
+
+
 def has_map_inside(text: str) -> bool:
     t = text.lower().replace("ё", "е")
     return any(kw.replace("ё", "е") in t for kw in MAP_INSIDE)
+
+
+def is_map_collection(text: str) -> bool:
+    t = text.lower().replace("ё", "е")
+    return any(kw in t for kw in MAP_COLLECTION)
+
+
+def is_archival_opis(text: str) -> bool:
+    return bool(_ARCHIVAL_OPIS_RE.search(text.lower().replace("ё", "е")))
 
 
 def is_settlement_subject(text: str) -> bool:
