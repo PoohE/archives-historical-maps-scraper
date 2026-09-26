@@ -29,6 +29,9 @@ DB_ID = "5ead971c-b9bd-4bc2-90d8-73d0841b1f93"
 ENV = Path(r"D:\Yandex.Disk\History&Geography\БД\Каталогизация\.env")
 
 # код -> (page_id справочника «Типы источников», DC Type)
+# DC Type — по уровню ЕДИНИЦЫ (канон табл. 9), где он точнее упрощённой табл. 7:
+# C1 = StillImage+Text (планы дач + примечания), C4 = Text+Dataset (описание+статистика),
+# прочие C = Dataset (табличные), A = StillImage, B = Text.
 TYPES = {
     "A1": ("3830ba89-eabe-816d-a278-cf6ce9cdeec6", "StillImage"),
     "A2": ("3830ba89-eabe-816e-90d4-eced7e4ce20f", "StillImage"),
@@ -46,10 +49,10 @@ TYPES = {
     "B8": ("3c30ba89-eabe-8156-867d-d8a6f3cec753", "Text"),
     "B9": ("3c30ba89-eabe-8142-b399-fca594cb25be", "Text"),
     "B10": ("3c30ba89-eabe-8101-9c97-e344090c601a", "Text"),
-    "C1": ("3830ba89-eabe-8194-a3fa-c6c650b8c17f", "Dataset"),
+    "C1": ("3830ba89-eabe-8194-a3fa-c6c650b8c17f", "StillImage+Text"),
     "C2": ("3830ba89-eabe-81ad-8901-f650b6242362", "Dataset"),
     "C3": ("3830ba89-eabe-81b5-bcb5-ffb41e8b7f3c", "Dataset"),
-    "C4": ("3830ba89-eabe-8110-b837-eb024a84ab10", "Dataset"),
+    "C4": ("3830ba89-eabe-8110-b837-eb024a84ab10", "Text+Dataset"),
     "C5": ("3830ba89-eabe-8111-b3c6-ef6c621450d8", "Dataset"),
     "C6": ("3c30ba89-eabe-8138-a95b-e689a21f51d2", "Dataset"),
     "C7": ("3c30ba89-eabe-8104-8ccb-fb73355a9995", "Dataset"),
