@@ -38,7 +38,10 @@ sys.stdout.reconfigure(encoding="utf-8")
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE / "modules"))
 
-from triggers import classify  # noqa: E402
+from triggers import (  # noqa: E402
+    classify, has_map_inside, is_settlement_subject, is_military,
+    is_office, is_travelogue, is_series_alias,
+)
 from territories import UYEZD_QUERIES  # noqa: E402
 
 # ── Территориальный охват (из справочника territories.py) ─────────────────────
@@ -56,8 +59,12 @@ FOREIGN_STEMS = (
     "лифляндск", "эстляндск", "курляндск", "ковенск", "варшавск",
     # NB: «Сибирь» НЕ отсеиваем — в XVIII–XIX вв. Пермский край часто проходил под
     # именем «Сибирь» (решение пользователя 2026-09-22); Сибирь-в-названии → на проверку.
-    "кавказ", "область войска", "уральск", "екатеринослав", "подольск", "волынск",
+    "кавказ", "область войска", "екатеринослав", "подольск", "волынск",
+    # NB: «уральск» НЕ отсеиваем — советская «Уральская область» (Кунгур, Ирбит) = терр. Пермской
+    # губ. (наш регион); казачье «Уральское войско» покрыто стемом «область войска».
     "дону", "дона", "донск", "на дону",
+    # сокращения чужих губерний в карточках («Владим. губ.» и т. п.) — случай 15
+    "владим", "симбирск", "симбир",
 )
 
 # Жанры заведомо-«не карта» (жёсткий отсев). НЕ включаем путешествия / путевые записки /
@@ -93,15 +100,31 @@ def norm_text(*parts) -> str:
 
 
 def scope_tag(rec: dict) -> str:
-    """in_scope | foreign | unclear — по нашим/чужим топонимам в названии+описании."""
-    hay = norm_text(rec.get("title"), rec.get("description"), rec.get("place"))
-    # Ростов-на-Дону — чужой, несмотря на совпадение со стемом уезда «ростов»
+    """in_scope | foreign | unclear — по нашим/чужим топонимам в названии+описании.
+
+    Приоритеты (правки по журналу ПрБ, случаи 3, 15):
+    - Ростов-на-Дону → чужой (несмотря на стем уезда «ростов»);
+    - мульти-губ перечисление (≥5 разных чужих стемов, травелог/сборник по многим губерниям) → чужой;
+    - явно названная ЧУЖАЯ губерния при отсутствии НАШЕЙ губернии бьёт совпадение уездного стема
+      (уезд принадлежит той чужой губернии, напр. «Переславль-Залесского уезда Владим. губ.»).
+
+    Регион определяется ТОЛЬКО по названию (субъект источника). Выходные данные (место издания
+    «СПб : тип. …», поле place) НЕ учитываются — иначе печать в СПб/Москве даёт ложный чужой
+    регион (напр. «Краткая сибирская летопись … С.-Петербург, 1880» о Кунгуре = Пермь).
+    """
+    hay = norm_text(rec.get("title"))
     if "ростов" in hay and "дон" in hay:
         return "foreign"
-    if any(s in hay for s in IN_SCOPE_STEMS):
-        return "in_scope"
-    if any(s in hay for s in FOREIGN_STEMS):
+    our_gub = any(s in hay for s in GUB_STEMS)
+    foreign_hits = [s for s in FOREIGN_STEMS if s in hay]
+    # перечисление многих губерний (напр. «путевые записки по 20 губерниям») → не наш конкретный
+    if len(foreign_hits) >= 5:
         return "foreign"
+    # чужая губерния названа, нашей нет → чужой (перевешивает уездный стем)
+    if foreign_hits and not our_gub:
+        return "foreign"
+    if our_gub or any(s in hay for s in UYEZD_STEMS):
+        return "in_scope"
     return "unclear"
 
 
@@ -155,25 +178,45 @@ def decide(rec: dict, source: str, ex_urls: set, ex_keys: set,
         return "in_notion", "already_in_notion"
     title = rec.get("title") or ""
     title_l = norm_text(title)
+    text = norm_text(title, rec.get("description"), rec.get("place"))
     scope = scope_tag(rec)
     per = period_ok(rec, lo, hi)
     cls = classify(title)
-    # чужой регион → отсев
+
+    # 1. чужой регион (foreign-wins + мульти-губ перечисление) → отсев
     if scope == "foreign":
         return "drop", "out_of_scope"
-    # жанр «не карта» (пещера/летопись/дневник/путешествие…) → отсев даже в нашем регионе
-    if any(g in title_l for g in NEGATIVE_GENRE):
-        return "drop", "not_cartographic"
-    # вне периода: по полю года ИЛИ по году в самом названии (напр. «… 2014»)
+    # 2. вне периода: по полю года ИЛИ по году в самом названии (напр. «… 2014»)
     if per is False or title_year_over(title, hi):
         return "drop", "out_of_period"
-    # не картографический и вне нашего региона → отсев (в регионе — не выбрасываем)
+    # 3. серийный корпус (наш; guard: не чужой регион) → keep, минуя all-Russia неоднозначность
+    if is_series_alias(text) and scope != "foreign":
+        return "keep", "series"
+    # 4. карта ВНУТРИ источника (наш регион/неясно, в периоде) → keep (перебивает жанровые drop)
+    if has_map_inside(text) and scope in ("in_scope", "unclear"):
+        return "keep", "map_inside"
+    # 5. субъект = отдельный населённый пункт (город/село) → отсев (уезд/губ — лишь адрес)
+    if is_settlement_subject(title_l):
+        return "drop", "settlement_subject"
+    # 6. военная кампания/действия → отсев
+    if is_military(title_l):
+        return "drop", "military"
+    # 7. делопроизводство/штат без карты → отсев
+    if is_office(title_l):
+        return "drop", "office_document"
+    # 8. жанр «не карта» (пещера/житие/репортаж/открытка) → отсев
+    if any(g in title_l for g in NEGATIVE_GENRE):
+        return "drop", "not_cartographic"
+    # 9. травелог о нашей территории → keep (основной формат геоописания эпохи)
+    if is_travelogue(title_l) and scope == "in_scope":
+        return "keep", "travelogue"
+    # 10. не картографический и вне нашего региона → отсев
     if cls == "negative" and scope != "in_scope":
         return "drop", "not_cartographic"
-    # уверенная карта нашего региона в периоде → авто-оставить
+    # 11. уверенная карта нашего региона в периоде → авто-оставить
     if cls == "positive" and scope == "in_scope" and per in (True, None):
         return "keep", "auto_keep"
-    # остальное — на ручную проверку с пояснением
+    # 12. остальное — на ручную проверку с пояснением
     tags = []
     if cls == "doubtful":
         tags.append("сомнительный тип")
