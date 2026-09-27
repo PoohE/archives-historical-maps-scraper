@@ -35,6 +35,7 @@ H = {"Authorization": f"Bearer {TOK}", "Notion-Version": "2022-06-28",
      "Content-Type": "application/json"}
 DB = "5ead971c-b9bd-4bc2-90d8-73d0841b1f93"
 GENMEZH = "3830ba89-eabe-815f-ae01-c2ded60fa802"  # серия «Генеральное межевание»
+RGADA_HOLDER = "3830ba89-eabe-8142-932f-cc49700fb68b"  # «Архивы»: РГАДА (держатель всех rgada.info)
 
 
 def api(method, url, data=None):
@@ -54,6 +55,20 @@ def api(method, url, data=None):
 def opisanie_of(url):
     q = parse_qs(urlsplit(url).query)
     return unquote(q.get("opisanie", [""])[0]).replace("<br>", " ").strip()
+
+
+def build_title(op):
+    """Читаемое «Название источника» из текста описи: хвост «Губерния, уезд: G; U»
+    → «G губерния; U уезд(ы)». Нет такого хвоста — берём текст описи как есть."""
+    op = re.sub(r"\s+", " ", op).strip()
+    m = re.search(r"Губерния,\s*уезд:\s*([^;]+);\s*(.+?)\s*\.?\s*$", op)
+    if m:
+        head = op[:m.start()].rstrip()
+        gub = m.group(1).strip()
+        uezd = m.group(2).strip().rstrip(".")
+        word = "уезды" if "," in uezd else "уезд"
+        return f"{head} {gub} губерния; {uezd} {word}".strip()
+    return op
 
 
 def rgada_records():
@@ -82,7 +97,8 @@ def main():
     print("РЕЖИМ:", "ПРИМЕНЕНИЕ" if apply else "DRY-RUN")
     recs = rgada_records()
     print(f"записей РГАДА: {len(recs)}")
-    d_fill = y_fill = s_fill = t_fill = 0
+    d_fill = y_fill = s_fill = t_fill = n_fill = a_fill = 0
+    samples = []
     for pg in recs:
         pr = pg["properties"]
         url = (pr.get("Ссылка на онлайн-архив", {}) or {}).get("url") or ""
@@ -90,6 +106,14 @@ def main():
         if not op:
             continue
         patch = {}
+        # Название источника — строим из текста описи (перезаписываем терсовое «Ф. N…»)
+        cur_title = "".join(x["plain_text"] for x in pr["Название источника"]["title"])
+        new_title = build_title(op)
+        if new_title and new_title != cur_title:
+            patch["Название источника"] = {"title": [{"text": {"content": new_title[:2000]}}]}
+            n_fill += 1
+            if len(samples) < 4:
+                samples.append((cur_title, new_title))
         if empty(pr, "Описание"):
             patch["Описание"] = {"rich_text": [{"text": {"content": op[:2000]}}]}
             d_fill += 1
@@ -100,6 +124,9 @@ def main():
                 y_fill += 1
             if empty(pr, "Год создания (верхняя)"):
                 patch["Год создания (верхняя)"] = {"number": int(ym.group(2))}
+        if empty(pr, "Архив хранения"):
+            patch["Архив хранения"] = {"relation": [{"id": RGADA_HOLDER}]}
+            a_fill += 1
         if "межевани" in op.lower() and empty(pr, "Серия / массив"):
             patch["Серия / массив"] = {"relation": [{"id": GENMEZH}]}
             s_fill += 1
@@ -114,7 +141,10 @@ def main():
             api("PATCH", f"https://api.notion.com/v1/pages/{pg['id']}",
                 {"properties": patch})
             time.sleep(0.34)
-    print(f"\nОписание: {d_fill} | Год: {y_fill} | Серия(Генмежевание): {s_fill} | Тип: {t_fill}")
+    print(f"\nНазвание: {n_fill} | Описание: {d_fill} | Год: {y_fill} | "
+          f"Серия(Генмежевание): {s_fill} | Тип: {t_fill} | Архив хранения(РГАДА): {a_fill}")
+    for old, new in samples:
+        print(f"\n  БЫЛО: {old}\n  СТАЛО: {new}")
 
 
 if __name__ == "__main__":

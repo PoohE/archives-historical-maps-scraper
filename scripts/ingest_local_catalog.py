@@ -153,14 +153,21 @@ def find_page(url, shf):
 
 
 def compose_descr(r):
+    # «Листов» НЕ сюда — это локатор листов дела, поле «Листы / страницы» (канон поле 7).
     bits = []
     if r.get("descr"):
         bits.append(r["descr"])
-    if r.get("sheets"):
-        bits.append(f"{r['sheets']} л.")
     if r.get("note"):
         bits.append(r["note"])
     return " — ".join(bits)
+
+
+def sheets_locator(r):
+    """CSV «Листов» → значение поля «Листы / страницы» (листы дела в месте хранения)."""
+    s = (r.get("sheets") or "").strip()
+    if not s:
+        return ""
+    return s if any(c.isalpha() for c in s) else f"{s} л."
 
 
 def build_props(r, terr_idx, terr_gub, reg_idx, arch_map):
@@ -186,6 +193,9 @@ def build_props(r, terr_idx, terr_gub, reg_idx, arch_map):
     shf = shifr(r)
     if shf:
         props["Библиотечный шифр"] = {"rich_text": [{"text": {"content": shf}}]}
+    loc = sheets_locator(r)  # листы дела → «Листы / страницы» (канон поле 7)
+    if loc:
+        props["Листы / страницы"] = {"rich_text": [{"text": {"content": loc}}]}
     # годы
     lo, hi = parse_year(r.get("year"))
     if lo is not None:
