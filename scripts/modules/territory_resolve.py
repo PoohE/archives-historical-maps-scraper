@@ -71,23 +71,28 @@ def territory_names(title: str, rgada: bool) -> list[str]:
     return names
 
 
-def resolve(title, url, terr_stem_index, terr_gub, reg_index):
+def resolve(title, url, terr_stem_index, terr_gub, reg_index, hints=None):
     """→ (territory_page_ids, region_page_ids). Индексы:
        terr_stem_index: stem(name) -> page_id территории;
        terr_gub:        page_id территории -> губерния(lower);
        reg_index:       название региона -> page_id.
+       hints:           явные строки территории от источника (ПрБ entry["territory"]
+                        «Калужская губерния»/«Соликамск»; локальный каталог «Мещовский»/
+                        «Калужская губерния»). Надёжнее парсинга названия — их матчим по стему.
     """
     rgada = is_rgada(title, url)
     terr_ids: list[str] = []
     regions: set[str] = set()
-    for nm in territory_names(title, rgada):
+    for nm in territory_names(title, rgada) + list(hints or []):
+        if not nm:
+            continue
         pid = terr_stem_index.get(stem(nm))
         if pid:
             terr_ids.append(pid)
             g = (terr_gub.get(pid) or "").lower()
             if g in GUB_TO_REGION:
                 regions.add(GUB_TO_REGION[g])
-    src = (title or "").lower().replace("ё", "е")
+    src = ((title or "") + " " + " ".join(hints or [])).lower().replace("ё", "е")
     for stm, name in REGION_STEMS.items():
         if stm in src:
             regions.add(name)
