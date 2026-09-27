@@ -39,10 +39,13 @@ sys.stdout.reconfigure(encoding="utf-8")
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE / "modules"))
 import notion_export as ne  # noqa: E402  (PROPERTIES — типы колонок схемы)
+import territory_resolve as tr  # noqa: E402  (авто-простановка территории/региона)
 
 PROPS = ne.PROPERTIES
 DB_ID = "5ead971c-b9bd-4bc2-90d8-73d0841b1f93"
 ARCHIVES_DB_ID = "a9e98744-faf8-493f-93e5-cb14c0374fd8"  # справочник «Архивы»
+TERR_DB_ID = "3920ba89-eabe-81a2-86a2-d50d1bfee1c0"  # справочник «Территории» (уезды/города)
+REG_DB_ID = "6c6a3cfb-8d87-491e-8ce6-da7194bc857b"   # справочник «Современные регионы»
 ENV = Path(r"D:\Yandex.Disk\History&Geography\БД\Каталогизация\.env")
 URL_COL = "Ссылка на онлайн-архив"
 VALID_REASONS = {"сомнительный тип", "нет маркера карты", "регион неясен", "год не указан"}
@@ -233,6 +236,8 @@ def main() -> None:
     relations = load_relations(d / "export_review.json")
     arch_map = archives_map() if relations else {}
     unresolved: list[str] = []
+    # индексы справочников территорий/регионов для авто-простановки (общее правило)
+    terr_stem_index, terr_gub, reg_index = tr.load_indexes(api, TERR_DB_ID, REG_DB_ID)
 
     rows = list(csv.DictReader(io.open(csv_path, encoding="utf-8-sig")))
     added = updated = skipped = errors = 0
@@ -244,6 +249,13 @@ def main() -> None:
             if p is not None:
                 props[col] = p
         props.update(relation_props(relations.get(url, []), arch_map, unresolved))
+        # Авто-простановка территории/региона (общее правило, только если ещё не заданы)
+        full_title = r.get("Название источника", "")
+        terr_ids, reg_ids = tr.resolve(full_title, url, terr_stem_index, terr_gub, reg_index)
+        if terr_ids and "Охватываемая территория" not in props:
+            props["Охватываемая территория"] = {"relation": [{"id": i} for i in terr_ids]}
+        if reg_ids and "Современные регионы" not in props:
+            props["Современные регионы"] = {"relation": [{"id": i} for i in reg_ids]}
         # Д18-страж: «Номер в серии» только вместе с «Серия / массив» — иначе отбросить
         # (том без серии = нарушение; серию линкует детектор A / регистрирует эксперт).
         if "Номер в серии" in props and "Серия / массив" not in props:
