@@ -114,8 +114,17 @@ def main():
             n_fill += 1
             if len(samples) < 4:
                 samples.append((cur_title, new_title))
-        if empty(pr, "Описание"):
-            patch["Описание"] = {"rich_text": [{"text": {"content": op[:2000]}}]}
+        # Описание = полный текст описи + существующая аннотация (напр. «Алфавит № 208»),
+        # если она не входит в текст описи. Перезаписываем фрагмент полным текстом.
+        cur_d = "".join(x["plain_text"] for x in pr.get("Описание", {}).get("rich_text", [])).strip()
+        if cur_d.startswith(op):
+            new_d = cur_d          # уже обогащено (op-префикс) — не дублировать при повторе
+        elif cur_d and cur_d not in op:
+            new_d = f"{op} {cur_d}".strip()   # дописать аннотацию (напр. «Алфавит № 208»)
+        else:
+            new_d = op
+        if new_d and new_d != cur_d:
+            patch["Описание"] = {"rich_text": [{"text": {"content": new_d[:2000]}}]}
             d_fill += 1
         ym = re.search(r"(\d{4})\s*-\s*(\d{4})\s*гг", op)
         if ym:
