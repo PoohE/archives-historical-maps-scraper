@@ -9,7 +9,10 @@
   Год нижняя/верхняя ← «NNNN-NNNN гг.» (охват коллекции);
   Серия / массив     ← «Генеральное межевание», если в тексте «межевани» (опись = РЕЕСТР
                        серийных карт Генмежевания, а не сами карты → привязка к серии);
-  Тип источника+DC Type ← классификация по тексту (sweep_candidate_type).
+  Фонд/Опись/Библ. шифр ← из URL str=<фонд>-opis_<опись>[-<часть>]; шифр «РГАДА. Ф. N. Оп. M[. Ч. K]»;
+  DC Type            ← Text (описи — текстовые finding-aids/реестры планов дач, НЕ карты).
+«Тип источника» НЕ ставим: для архивной описи/реестра планов дач нет кода A1–C8 (канон: не
+угадывать), связь с Генмежеванием несёт поле «Серия / массив».
 «Номер в серии» не ставим (опись ≠ номер в серии; страж Д18).
 
 Запуск: python scripts/maintenance/sweep_rgada_enrich.py [--apply]   (без флага — dry-run)
@@ -21,10 +24,6 @@ import json
 import urllib.request
 from urllib.parse import urlsplit, parse_qs, unquote
 from pathlib import Path
-
-HERE = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(HERE / "maintenance"))
-from sweep_candidate_type import TYPES, classify  # noqa: E402
 
 ENV = Path(r"D:\Yandex.Disk\History&Geography\БД\Каталогизация\.env")
 TOK = ""
@@ -55,6 +54,13 @@ def api(method, url, data=None):
 def opisanie_of(url):
     q = parse_qs(urlsplit(url).query)
     return unquote(q.get("opisanie", [""])[0]).replace("<br>", " ").strip()
+
+
+def parse_shelfmark(url):
+    """URL str=<фонд>-opis_<опись>[-<часть>] → (фонд, опись, часть|None). None если не разобрать."""
+    s = parse_qs(urlsplit(url).query).get("str", [""])[0]
+    m = re.match(r"^(\d+)-opis_(\d+)(?:-(\d+))?", s)
+    return (m.group(1), m.group(2), m.group(3)) if m else None
 
 
 def build_title(op):
@@ -97,7 +103,7 @@ def main():
     print("РЕЖИМ:", "ПРИМЕНЕНИЕ" if apply else "DRY-RUN")
     recs = rgada_records()
     print(f"записей РГАДА: {len(recs)}")
-    d_fill = y_fill = s_fill = t_fill = n_fill = a_fill = 0
+    d_fill = y_fill = s_fill = n_fill = a_fill = sh_fill = dc_fill = 0
     samples = []
     for pg in recs:
         pr = pg["properties"]
@@ -139,19 +145,31 @@ def main():
         if "межевани" in op.lower() and empty(pr, "Серия / массив"):
             patch["Серия / массив"] = {"relation": [{"id": GENMEZH}]}
             s_fill += 1
-        code = classify(op)
-        if code and code in TYPES and empty(pr, "Тип источника"):
-            pid, dc = TYPES[code]
-            patch["Тип источника"] = {"relation": [{"id": pid}]}
-            if empty(pr, "DC Type"):
-                patch["DC Type"] = {"select": {"name": dc}}
-            t_fill += 1
+        # Шифр из URL: Фонд/Опись/Библиотечный шифр (URL авторитетен, чистит мусор «ОЦ»)
+        sm = parse_shelfmark(url)
+        if sm:
+            fund, opis, part = sm
+            opis_full = opis + (f". Ч. {part}" if part else "")
+            shifr = f"РГАДА. Ф. {fund}. Оп. {opis}" + (f". Ч. {part}" if part else "")
+            cur_shifr = "".join(x["plain_text"]
+                                for x in pr.get("Библиотечный шифр", {}).get("rich_text", []))
+            if cur_shifr != shifr:
+                patch["Фонд"] = {"rich_text": [{"text": {"content": fund}}]}
+                patch["Опись"] = {"rich_text": [{"text": {"content": opis_full}}]}
+                patch["Библиотечный шифр"] = {"rich_text": [{"text": {"content": shifr}}]}
+                sh_fill += 1
+        # DC Type = Text (описи-реестры — текстовые finding-aids, НЕ карты). «Тип источника»
+        # не ставим: нет кода A1–C8 для архивной описи, связь с Генмежеванием — через «Серия / массив».
+        if (pr.get("DC Type", {}).get("select") or {}).get("name") != "Text":
+            patch["DC Type"] = {"select": {"name": "Text"}}
+            dc_fill += 1
         if patch and apply:
             api("PATCH", f"https://api.notion.com/v1/pages/{pg['id']}",
                 {"properties": patch})
             time.sleep(0.34)
     print(f"\nНазвание: {n_fill} | Описание: {d_fill} | Год: {y_fill} | "
-          f"Серия(Генмежевание): {s_fill} | Тип: {t_fill} | Архив хранения(РГАДА): {a_fill}")
+          f"Серия(Генмежевание): {s_fill} | Шифр: {sh_fill} | DC Type=Text: {dc_fill} | "
+          f"Архив хранения(РГАДА): {a_fill}")
     for old, new in samples:
         print(f"\n  БЫЛО: {old}\n  СТАЛО: {new}")
 
