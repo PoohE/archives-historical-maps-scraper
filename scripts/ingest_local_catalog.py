@@ -186,13 +186,12 @@ def build_props(r, terr_idx, terr_gub, reg_idx, arch_map):
         aid = arch_map.get(HOLDER_ALIASES.get(arch, arch)) or arch_map.get(arch)
         if aid:
             props["Архив хранения"] = {"relation": [{"id": aid}]}
-    # шифр + Фонд/Опись/Единица
+    # Архивный шифр РАЗЛОЖЕН по полям Фонд/Опись/Единица (дело). Композит «РГВИА. Ф. N…» собирает
+    # формула поля «Шифр архива» — сюда НЕ пишем. «Библиотечный шифр» — только библиотеки/порталы,
+    # у архивных дел (эти CSV коллег — РГВИА/РГИА/ГАРФ/РГАДА) НЕ заполняем.
     for key, col in (("fund", "Фонд"), ("opis", "Опись"), ("delo", "Единица хранения")):
         if r.get(key):
             props[col] = {"rich_text": [{"text": {"content": r[key]}}]}
-    shf = shifr(r)
-    if shf:
-        props["Библиотечный шифр"] = {"rich_text": [{"text": {"content": shf}}]}
     loc = sheets_locator(r)  # листы дела → «Листы / страницы» (канон поле 7)
     if loc:
         props["Листы / страницы"] = {"rich_text": [{"text": {"content": loc}}]}
