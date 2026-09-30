@@ -31,6 +31,7 @@ sys.path.insert(0, str(HERE / "maintenance"))
 import territory_resolve as tr  # noqa: E402
 from sweep_candidate_type import TYPES, classify  # noqa: E402
 from notion_upload_candidates import archives_map, HOLDER_ALIASES  # noqa: E402
+from cartographic_enrichment import convert_scale  # noqa: E402
 
 DB = "5ead971c-b9bd-4bc2-90d8-73d0841b1f93"
 TERR_DB = "3920ba89-eabe-81a2-86a2-d50d1bfee1c0"
@@ -133,8 +134,8 @@ def shifr(r):
     return ".".join(parts)
 
 
-def find_page(url, shf):
-    """Существующая запись по URL (по хвосту id) или по «Библиотечный шифр»."""
+def find_page(url, row):
+    """Существующая запись: по URL (хвост id), иначе по архивному шифру Фонд+Опись+Дело."""
     if url:
         tail = norm_url(url).split("/")[-1]
         if tail:
@@ -143,10 +144,14 @@ def find_page(url, shf):
                                 "url": {"contains": tail}}, "page_size": 1})
             if r["results"]:
                 return r["results"][0]
-    if shf:
+    fund, opis, delo = row.get("fund"), row.get("opis"), row.get("delo")
+    if fund and opis and delo:
         r = api("POST", f"https://api.notion.com/v1/databases/{DB}/query",
-                {"filter": {"property": "Библиотечный шифр",
-                            "rich_text": {"equals": shf}}, "page_size": 1})
+                {"filter": {"and": [
+                    {"property": "Фонд", "rich_text": {"equals": fund}},
+                    {"property": "Опись", "rich_text": {"equals": opis}},
+                    {"property": "Единица хранения", "rich_text": {"equals": delo}}]},
+                 "page_size": 1})
         if r["results"]:
             return r["results"][0]
     return None
@@ -170,14 +175,75 @@ def sheets_locator(r):
     return s if any(c.isalpha() for c in s) else f"{s} л."
 
 
+LANG_MAP = {"русск": "Русский", "французск": "Французский", "немецк": "Немецкий",
+            "английск": "Английский", "латин": "Латинский", "польск": "Польский"}
+
+
+def parse_title(name):
+    """Разбор «Название» Алейникова: вынести масштаб/язык/технику/гравёра, вернуть чистое имя.
+    → {clean, scale_orig, scale_denom, langs[], tehnika, author}."""
+    t = (name or "").strip()
+    out = {"scale_orig": "", "scale_denom": None, "langs": [], "tehnika": "", "author": ""}
+    # масштаб: хвост «Масштаб: X» либо inline «в 1 дюйме N верст» / «1:N»
+    m = re.search(r"[.,]?\s*Масштаб[:\s]+(.+?)\s*\.?\s*$", t, re.I)
+    if m:
+        out["scale_orig"] = m.group(1).strip().rstrip(".")
+        t = t[:m.start()].rstrip(" .,")
+    else:
+        m2 = re.search(r"(в\s+1\s+дюйме\s+[\d.,]+\s*вер\w*|[\d.,]+\s*вер\w*\s+в\s+дюйме|1\s*:\s*\d[\d\s]*)",
+                       t, re.I)
+        if m2:
+            out["scale_orig"] = m2.group(1).strip()
+            t = (t[:m2.start()] + t[m2.end():]).strip(" .,")
+    if out["scale_orig"]:
+        den, _ = convert_scale(out["scale_orig"])
+        out["scale_denom"] = den
+    # язык: «на русском и французском языках»
+    lm = re.search(r"\s+на\s+([а-яё\s,и]+?)\s+язык\w*", t, re.I)
+    if lm:
+        seg = lm.group(1).lower()
+        for stem, val in LANG_MAP.items():
+            if stem in seg:
+                out["langs"].append(val)
+        t = (t[:lm.start()] + " " + t[lm.end():]).strip(" .,")
+    # гравёр + техника
+    ge = re.search(r"\bгравировал\s+([А-ЯЁ][а-яё]+)", t, re.I)
+    if ge:
+        out["author"] = ge.group(1)
+        out["tehnika"] = "Гравюра"
+        t = re.sub(r"\.?\s*гравировал\s+[А-ЯЁ][а-яё]+\.?", "", t, flags=re.I).strip(" .,")
+    if re.search(r"\bГрав\b\.?", t, re.I):
+        out["tehnika"] = out["tehnika"] or "Гравюра"
+        t = re.sub(r"[.,]?\s*\bГрав\b\.?", " ", t, flags=re.I).strip(" .,")
+    if re.search(r"\bРук\b\.?", t, re.I):
+        out["tehnika"] = out["tehnika"] or "Рукописная"
+        t = re.sub(r"[.,]?\s*\bРук\b\.?", " ", t, flags=re.I).strip(" .,")
+    out["clean"] = re.sub(r"\s+", " ", t).strip(" .,")
+    return out
+
+
 def build_props(r, terr_idx, terr_gub, reg_idx, arch_map):
-    title = r.get("title") or ""
-    if not title and r.get("descr"):
-        title = r["descr"][:90].rstrip() + ("…" if len(r["descr"]) > 90 else "")
+    full_name = (r.get("title") or "").strip()
+    if not full_name and r.get("descr"):
+        full_name = r["descr"].strip()
+    p = parse_title(full_name)
+    title = p["clean"] or full_name           # чистое имя карты (без масштаба/языка/техники)
     url = norm_url(r.get("url"))
     props = {}
     if title:
         props["Название источника"] = {"title": [{"text": {"content": title[:2000]}}]}
+    # масштаб: оригинал как в источнике + числовой знаменатель 1:N
+    if p["scale_orig"]:
+        props["Оригинальный масштаб"] = {"rich_text": [{"text": {"content": p["scale_orig"]}}]}
+    if p["scale_denom"]:
+        props["Масштаб (знаменатель)"] = {"number": p["scale_denom"]}
+    # язык (select — один; несколько → первый + прочие в Примечания ниже)
+    if p["langs"]:
+        props["Язык"] = {"select": {"name": p["langs"][0]}}
+    if p["tehnika"]:
+        props["Техника исполнения"] = {"select": {"name": p["tehnika"]}}
+    if p["author"]:
+        props["Автор / составитель"] = {"rich_text": [{"text": {"content": p["author"]}}]}
     if url:
         props["Ссылка на онлайн-архив"] = {"url": url}
     # Архив хранения (relation)
@@ -201,25 +267,35 @@ def build_props(r, terr_idx, terr_gub, reg_idx, arch_map):
         props["Год создания (нижняя)"] = {"number": lo}
     if hi is not None:
         props["Год создания (верхняя)"] = {"number": hi}
-    # описание
-    descr = compose_descr(r)
+    # Описание = ПОЛНОЕ название (мастер-текст) + заметка коллеги (Описание/Примечание), если не дубль
+    desc_bits = [full_name] if full_name else []
+    note = compose_descr(r)
+    if note and note not in full_name:
+        desc_bits.append(note)
+    descr = " — ".join(desc_bits)
     if descr:
         props["Описание"] = {"rich_text": [{"text": {"content": descr[:2000]}}]}
+    # Примечания: «Что заказывать» + доп. языки (если несколько — select держит один)
+    notes = []
     if r.get("order"):
-        props["Примечания"] = {"rich_text": [{"text": {"content": "Что заказывать: " + r["order"][:1900]}}]}
-    # территория/регион (из Губернии+Уезда как явные hints — надёжнее парсинга названия)
+        notes.append("Что заказывать: " + r["order"])
+    if len(p["langs"]) > 1:
+        notes.append("Языки: " + ", ".join(p["langs"]))
+    if notes:
+        props["Примечания"] = {"rich_text": [{"text": {"content": " | ".join(notes)[:2000]}}]}
+    # территория/регион (Губерния+Уезд как явные hints; матч по полному имени)
     hints = []
     if r.get("uezd"):
         hints.append(r["uezd"])              # уезд-прилагательное → запись-уезд
     if r.get("gub"):
         hints.append(f"{r['gub']} губерния")  # губ-уровень → запись-губерния
-    terr_ids, reg_ids = tr.resolve(title, url, terr_idx, terr_gub, reg_idx, hints=hints)
+    terr_ids, reg_ids = tr.resolve(full_name, url, terr_idx, terr_gub, reg_idx, hints=hints)
     if terr_ids:
         props["Охватываемая территория"] = {"relation": [{"id": i} for i in terr_ids]}
     if reg_ids:
         props["Современные регионы"] = {"relation": [{"id": i} for i in reg_ids]}
-    # тип источника + DC Type
-    code = classify(title)
+    # тип источника + DC Type (по полному имени — там видовые слова: карта/съёмка/журнал/перепись)
+    code = classify(full_name)
     if code and code in TYPES:
         pid, dc = TYPES[code]
         props["Тип источника"] = {"relation": [{"id": pid}]}
@@ -232,6 +308,9 @@ def main():
     ap.add_argument("csv", nargs="*", type=Path)
     ap.add_argument("--archives", default="", help="фильтр по архивам через запятую (РГВИА,ГАРФ)")
     ap.add_argument("--date", default="2026-09-27")
+    ap.add_argument("--author", default="Алейников", help="«Автор внесения» для НОВЫХ записей")
+    ap.add_argument("--overwrite", action="store_true",
+                    help="перезаписывать re-derived поля у существующих (перезанос по единым правилам)")
     ap.add_argument("--apply", action="store_true")
     a = ap.parse_args()
     files = a.csv or [SOURSE / "kaluga.csv", SOURSE / "perm.csv"]
@@ -258,10 +337,10 @@ def main():
         if "Название источника" not in props:
             skipped += 1
             continue
-        existing = find_page(norm_url(r.get("url")), shifr(r))
+        existing = find_page(norm_url(r.get("url")), r)
         if existing is None:
             props["Статус приёмки"] = {"select": {"name": "кандидат"}}
-            props["Автор внесения"] = {"select": {"name": "Агент"}}
+            props["Автор внесения"] = {"select": {"name": a.author}}
             props["Дата внесения"] = {"date": {"start": a.date}}
             created += 1
             if a.apply:
@@ -277,7 +356,7 @@ def main():
                 cur = pr.get(k, {})
                 t = cur.get("type")
                 empty = (not cur.get(t)) if t else True
-                if empty:
+                if a.overwrite or empty:   # перезанос: перезаписать re-derived поля
                     upd[k] = v
             if upd:
                 updated += 1
