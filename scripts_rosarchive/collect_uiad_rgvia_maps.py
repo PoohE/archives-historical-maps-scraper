@@ -32,6 +32,8 @@ from bs4 import BeautifulSoup
 
 sys.path.insert(0, str(Path(__file__).parent))
 from cdp import fetch, fetch_units  # noqa: E402
+from parsing import (  # noqa: E402
+    MAP_SUBJ, SIZE, TECH, YEAR, parse_scale)
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
@@ -54,16 +56,6 @@ TERR = {
     "Ярославская": re.compile(
         r"Ярослав|Ростов|Рыбинск|Углич|Молог|Мышкин|Данилов|Любим|Пошехон|Романов", re.I),
 }
-MAP_SUBJ = re.compile(
-    r"карт|план|атлас|чертеж|чертёж|съемк|съёмк|топограф|глазомерн|рекогносцир|профил", re.I)
-SCALE_NUM = re.compile(r"[МM][-\s.]*б?[\s.:]*(?:1\s*[:\s]\s*)?(\d[\d\s]{2,})", re.I)
-SCALE_V = re.compile(r"(\d+(?:[.,]\d+)?)\s*(?:вер|в)[а-я]*\s*в\s*(?:дюйм|д\.)", re.I)
-SCALE_SAZH = re.compile(r"(\d+)\s*саж", re.I)
-SIZE = re.compile(r"(\d+[,.]?\d*)\s*[хx\u00d7]\s*(\d+[,.]?\d*)\s*см", re.I)
-YEAR = re.compile(r"\b(1[5-9]\d{2}|20[0-2]\d)\b")
-TECH = re.compile(
-    r"рукоп[а-я.]*|печ[а-я.]*|грав[а-я.]*|литогр[а-я.]*|в красках|цв\.|акварел[ья]|"
-    r"тушь|ватман|фотокоп", re.I)
 
 COLS = ["source", "archive", "fund", "fund_title", "opis", "opis_title", "delo", "title",
         "year_from", "year_to", "scale_raw", "scale_denom", "size_cm", "technique",
@@ -73,22 +65,6 @@ COLS = ["source", "archive", "fund", "fund_title", "opis", "opis_title", "delo",
 def soup(url: str, wait: float = 4.0) -> BeautifulSoup:
     html, _ = fetch(url, wait=wait)
     return BeautifulSoup(html, "lxml")
-
-
-def parse_scale(t: str) -> tuple[str, str]:
-    """Масштаб из заголовка: 1:84000, «2 версты в дюйме», «100 саж.»."""
-    m = SCALE_V.search(t)
-    if m:
-        return m.group(0), str(int(float(m.group(1).replace(",", ".")) * 42000))
-    m = SCALE_SAZH.search(t)
-    if m:
-        return m.group(0), str(int(m.group(1)) * 84)
-    m = SCALE_NUM.search(t)
-    if m:
-        d = re.sub(r"\s", "", m.group(1))
-        if d.isdigit() and 50 <= int(d) <= 10_000_000:
-            return m.group(0), d
-    return "", ""
 
 
 def opis_list(fund_id: str) -> list[tuple[str, str, str]]:

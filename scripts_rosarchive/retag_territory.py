@@ -27,6 +27,9 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from parsing import parse_scale  # noqa: E402
+
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 OUT = Path(r"D:\Yandex.Disk\History&Geography\БД\Поиск онлайн архив\output\uiad_rgvia_maps_20261004")
@@ -99,6 +102,12 @@ def main() -> None:
         if r.get("is_map") != "true":
             reasons.append("subject_not_cartographic")
         r = dict(r)
+        # масштаб пересчитывается здесь же: формат «в 1 дюйме N вёрст» (основной в ф.386)
+        # первая версия разбора не ловила — у 305 записей масштаб терялся
+        if not r.get("scale_denom"):
+            raw, den = parse_scale(r["title"])
+            if den:
+                r["scale_raw"], r["scale_denom"] = raw, den
         r["territory"] = "; ".join(terr)
         r["territory_evidence"] = " | ".join(ev)
         r["needs_human"] = "true" if reasons else "false"
