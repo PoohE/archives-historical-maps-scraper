@@ -11,7 +11,7 @@
 #   powershell -NoProfile -File scripts_rosarchive\run_detached.ps1 -Task fund380
 #   powershell -NoProfile -File scripts_rosarchive\run_detached.ps1 -Task uiad -Funds 846
 param(
-    [Parameter(Mandatory = $true)][ValidateSet('fund380', 'uiad', 'prlib')][string]$Task,
+    [Parameter(Mandatory = $true)][ValidateSet('fund380', 'uiad', 'prlib', 'gapk')][string]$Task,
     [string]$Funds = ''
 )
 
@@ -34,6 +34,18 @@ elseif ($Task -eq 'prlib') {
     $log    = Join-Path $outDir "detached_$stamp.log"
     $err    = Join-Path $outDir "detached_$stamp.err"
     $p = Start-Process -FilePath $bash -ArgumentList $loop -WorkingDirectory $root `
+        -RedirectStandardOutput $log -RedirectStandardError $err -WindowStyle Hidden -PassThru
+}
+elseif ($Task -eq 'gapk') {
+    $outDir = Join-Path $root 'output\gapk_maps_20261005'
+    New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+    $script = Join-Path $root 'scripts_gapk\collect_gapk_maps.py'
+    $log    = Join-Path $outDir "run_$stamp.log"
+    $err    = Join-Path $outDir "run_$stamp.err"
+    if (-not $Funds) { $Funds = '279,716' }
+    $argString = '-B "{0}" --funds {1}' -f $script, $Funds
+    $env:PYTHONUTF8 = '1'
+    $p = Start-Process -FilePath 'python' -ArgumentList $argString -WorkingDirectory $root `
         -RedirectStandardOutput $log -RedirectStandardError $err -WindowStyle Hidden -PassThru
 }
 else {
