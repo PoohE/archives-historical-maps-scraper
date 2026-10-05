@@ -65,3 +65,18 @@ def parse_years(text: str) -> tuple[str, str]:
 
 def is_cartographic(text: str) -> bool:
     return bool(MAP_SUBJ.search(text))
+
+
+# Разбор строки элемента описи: «/ Фонд N. … / Опись M . … / Дело K . Заголовок».
+# Номер дела бывает с томом — «Дело 3 т.1», «Дело 1742 т.2» (опись 16 ф. 846, Каталог ВУА):
+# пробел внутри номера ломал прежнюю регулярку, 8 727 записей теряли и номер, и заголовок,
+# а год брался из названия описи «Каталог ВУА (1803-1892гг.)» — то есть датировка была ложной.
+CASE_RX = re.compile(r"Дело\s+(\d+[\w\-/]*(?:\s*т\.\s*\d+)?)\s*\.\s*(.*)$", re.S)
+
+
+def split_case(text: str) -> tuple[str, str]:
+    """(номер дела, заголовок) из строки элемента списка описи."""
+    m = CASE_RX.search(text)
+    if not m:
+        return "", text.strip()
+    return re.sub(r"\s+", " ", m.group(1)).strip(), m.group(2).strip()

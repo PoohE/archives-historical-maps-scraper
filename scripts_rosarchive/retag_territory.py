@@ -28,7 +28,7 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from parsing import parse_scale  # noqa: E402
+from parsing import parse_scale, parse_years, split_case  # noqa: E402
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
@@ -94,7 +94,20 @@ def main() -> None:
     rows = [json.loads(x) for x in src.read_text(encoding="utf-8").splitlines() if x.strip()]
     old_hits = sum(1 for r in rows if r.get("territory"))
     out_rows = []
+    repaired = 0
     for r in rows:
+        # записи, где номер дела не распознан, а в заголовок попал весь путь:
+        # опись 16 ф. 846 нумерует дела с томами («Дело 3 т.1»), прежний разбор ломался
+        if not r.get("delo") and r["title"].lstrip().startswith("/ Фонд"):
+            delo, title = split_case(r["title"])
+            if delo:
+                r = dict(r)
+                r["delo"], r["title"] = delo, title
+                y1, y2 = parse_years(title)   # годы пересчитать: прежние брались из пути
+                r["year_from"], r["year_to"] = y1, y2
+                raw, den = parse_scale(title)
+                r["scale_raw"], r["scale_denom"] = raw, den
+                repaired += 1
         terr, ev = tag(r["title"])
         reasons = []
         if not terr:
@@ -124,7 +137,7 @@ def main() -> None:
     new_hits = [r for r in out_rows if r["territory"]]
     rep = {
         "source": "uiad", "archive": "РГВИА", "records": len(out_rows),
-        "retagged": True,
+        "retagged": True, "repaired_titles": repaired,
         "territory_before": old_hits, "territory_after": len(new_hits),
         "by_territory": dict(Counter(t for r in new_hits for t in r["territory"].split("; "))),
         "by_fund_with_territory": dict(Counter(r["fund"] for r in new_hits)),

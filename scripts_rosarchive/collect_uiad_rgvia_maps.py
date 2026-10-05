@@ -33,7 +33,7 @@ from bs4 import BeautifulSoup
 sys.path.insert(0, str(Path(__file__).parent))
 from cdp import fetch, fetch_units  # noqa: E402
 from parsing import (  # noqa: E402
-    MAP_SUBJ, SIZE, TECH, YEAR, parse_scale)
+    MAP_SUBJ, SIZE, TECH, YEAR, parse_scale, split_case)
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
@@ -97,10 +97,7 @@ def cases_page(fund_id: str, opis_id: str, page: int) -> tuple[list[tuple[str, s
         mm = re.search(rf"/search/{RGVIA}/{fund_id}/{opis_id}/(\d+)/?$", it.get("href", ""))
         if not mm:
             continue
-        txt = it.get("text", "")
-        m = re.search(r"Дело\s+([\w\-/.]+)\s*\.\s*(.*)$", txt, re.S)
-        delo = m.group(1) if m else ""
-        title = (m.group(2) if m else txt).strip()
+        delo, title = split_case(it.get("text", ""))
         rows.append((mm.group(1), delo, title))
     return rows, total
 

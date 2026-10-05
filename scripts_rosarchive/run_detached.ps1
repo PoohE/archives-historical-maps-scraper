@@ -11,7 +11,7 @@
 #   powershell -NoProfile -File scripts_rosarchive\run_detached.ps1 -Task fund380
 #   powershell -NoProfile -File scripts_rosarchive\run_detached.ps1 -Task uiad -Funds 846
 param(
-    [Parameter(Mandatory = $true)][ValidateSet('fund380', 'uiad')][string]$Task,
+    [Parameter(Mandatory = $true)][ValidateSet('fund380', 'uiad', 'prlib')][string]$Task,
     [string]$Funds = ''
 )
 
@@ -21,6 +21,15 @@ $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 if ($Task -eq 'fund380') {
     $outDir = Join-Path $root 'output\rgia_fund380_20261003_v3_1'
     $loop   = 'output/rgia_fund380_handoff_20261003_v3_1/run_loop.sh'
+    $bash   = 'C:\Program Files\Git\bin\bash.exe'
+    $log    = Join-Path $outDir "detached_$stamp.log"
+    $err    = Join-Path $outDir "detached_$stamp.err"
+    $p = Start-Process -FilePath $bash -ArgumentList $loop -WorkingDirectory $root `
+        -RedirectStandardOutput $log -RedirectStandardError $err -WindowStyle Hidden -PassThru
+}
+elseif ($Task -eq 'prlib') {
+    $outDir = Join-Path $root 'output\prlib_catalog_full_20261004_v7_1'
+    $loop   = 'output/prlib_catalog_full_handoff_20261004_v7_1/run_loop.sh'
     $bash   = 'C:\Program Files\Git\bin\bash.exe'
     $log    = Join-Path $outDir "detached_$stamp.log"
     $err    = Join-Path $outDir "detached_$stamp.err"
