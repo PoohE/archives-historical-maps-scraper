@@ -38,7 +38,9 @@ def _tab(own: bool = False) -> tuple[str, str | None]:
     Поэтому любой второй процесс обязан открыть СВОЮ вкладку: own=True.
     """
     if own:
-        with urllib.request.urlopen(f"{CDP}/json/new?about:blank", method="PUT", timeout=10) as r:
+        # PUT обязателен: современный Chrome не создаёт вкладку по GET /json/new
+        req = urllib.request.Request(f"{CDP}/json/new?about:blank", method="PUT")
+        with urllib.request.urlopen(req, timeout=10) as r:
             tab = json.load(r)
         return tab["webSocketDebuggerUrl"], tab["id"]
     with urllib.request.urlopen(f"{CDP}/json/list", timeout=10) as r:
