@@ -68,12 +68,18 @@ def soup(url: str, wait: float = 4.0) -> BeautifulSoup:
 
 
 def opis_list(fund_id: str) -> list[tuple[str, str, str]]:
-    """Описи фонда: (opis_id, номер, заголовок)."""
-    so = soup(f"{BASE}/search/{RGVIA}/{fund_id}/", wait=5)
+    """Описи фонда: (opis_id, номер, заголовок).
+
+    Берём со страницы `/guide/<архив>/<фонд>/` — там вкладка «Описи фонда».
+    На `/search/<архив>/<фонд>/` портал сразу показывает ДЕЛА первой описи, и список
+    описей оттуда не получить: у ф. 827 из-за этого опись на 5 022 дела была принята
+    за пустую и закрыта после первой страницы.
+    """
+    so = soup(f"{BASE}/guide/{RGVIA}/{fund_id}/", wait=5)
     out: list[tuple[str, str, str]] = []
     seen = set()
     for a in so.find_all("a", href=True):
-        m = re.search(rf"/search/{RGVIA}/{fund_id}/(\d+)/?$", a["href"])
+        m = re.search(rf"/guide/{RGVIA}/{fund_id}/(\d+)/?$", a["href"])
         if not m or m.group(1) in seen:
             continue
         t = re.sub(r"\s+", " ", a.get_text(" ", strip=True))
@@ -186,6 +192,7 @@ def main() -> None:
                 continue
             page = state.get(key, {}).get("pages_done", 0) + 1
             total = state.get(key, {}).get("total", 0)
+            prev_ids: set[str] = set()
             while True:
                 if args.max_pages and page > args.max_pages:
                     break
@@ -198,6 +205,13 @@ def main() -> None:
                 if not rows:
                     state[key] = {"pages_done": page - 1, "total": total, "status": "complete"}
                     break
+                # счётчик «Всего» на странице описи ненадёжен (показывает то число описей,
+                # то число дел), поэтому конец определяем по факту: повтор тех же дел
+                page_ids = {cid for cid, _, _ in rows}
+                if page_ids and page_ids == prev_ids:
+                    state[key] = {"pages_done": page - 1, "total": total, "status": "complete"}
+                    break
+                prev_ids = page_ids
                 with recs_path.open("a", encoding="utf-8") as fh:
                     for case_id, delo, title in rows:
                         rec = build_record(num, fund_id, fund_title, opis_num, opis_title,
@@ -208,7 +222,7 @@ def main() -> None:
                                       encoding="utf-8")
                 if page == 1 or page % 5 == 0:
                     print(f"   оп.{opis_num}: стр.{page}, всего дел {total}")
-                if total and page * 20 >= total:
+                if total and total > 20 and page * 20 >= total:
                     state[key]["status"] = "complete"
                     state_path.write_text(json.dumps(state, ensure_ascii=False, indent=1),
                                           encoding="utf-8")

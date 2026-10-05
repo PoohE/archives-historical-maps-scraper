@@ -29,19 +29,39 @@ except ImportError as e:  # pragma: no cover
 CDP = "http://127.0.0.1:9222"
 
 
-def _tab() -> str:
+def _tab(own: bool = False) -> tuple[str, str | None]:
+    """(ws-адрес вкладки, её id если вкладку создали мы).
+
+    ⚠️ Вкладка — разделяемый ресурс. Если сборщик работает, а проверочный скрипт берёт
+    ТУ ЖЕ первую вкладку, оба навигируют её одновременно и читают чужие страницы:
+    05.10 так пришли ответы разных описей вперемешку (стр. 235 отдала дела другой описи).
+    Поэтому любой второй процесс обязан открыть СВОЮ вкладку: own=True.
+    """
+    if own:
+        with urllib.request.urlopen(f"{CDP}/json/new?about:blank", method="PUT", timeout=10) as r:
+            tab = json.load(r)
+        return tab["webSocketDebuggerUrl"], tab["id"]
     with urllib.request.urlopen(f"{CDP}/json/list", timeout=10) as r:
         tabs = [t for t in json.load(r) if t.get("type") == "page"]
     if not tabs:
         raise SystemExit("нет открытых вкладок в отладочном Chrome")
-    return tabs[0]["webSocketDebuggerUrl"]
+    return tabs[0]["webSocketDebuggerUrl"], None
+
+
+def _close_tab(tab_id: str) -> None:
+    try:
+        with urllib.request.urlopen(f"{CDP}/json/close/{tab_id}", timeout=10):
+            pass
+    except Exception:
+        pass
 
 
 class Page:
     """Вкладка отладочного Chrome: навигация и выполнение выражений."""
 
-    def __init__(self, timeout: int = 60):
-        self.ws = create_connection(_tab(), timeout=timeout, suppress_origin=True)
+    def __init__(self, timeout: int = 60, own_tab: bool = False):
+        ws_url, self._own_id = _tab(own=own_tab)
+        self.ws = create_connection(ws_url, timeout=timeout, suppress_origin=True)
         self._id = 0
 
     def send(self, method: str, params: dict | None = None) -> dict:
@@ -67,11 +87,14 @@ class Page:
             self.ws.close()
         except Exception:
             pass
+        if self._own_id:
+            _close_tab(self._own_id)
 
 
-def fetch(url: str, wait: float = 3.0, timeout: int = 60) -> tuple[str, str]:
-    """Открывает URL и возвращает (html, видимый текст)."""
-    p = Page(timeout)
+def fetch(url: str, wait: float = 3.0, timeout: int = 60,
+          own_tab: bool = False) -> tuple[str, str]:
+    """Открывает URL и возвращает (html, видимый текст). own_tab=True — своя вкладка."""
+    p = Page(timeout, own_tab=own_tab)
     try:
         p.goto(url, wait)
         return (p.evaluate("document.documentElement.outerHTML") or "",
@@ -101,9 +124,12 @@ ITEMS_JS = """(() => {
 
 
 def fetch_units(url: str, wait: float = 4.0, expand_wait: float = 2.0,
-                timeout: int = 60) -> tuple[list[dict], int]:
-    """Список дел страницы описи с РАЗВЁРНУТЫМИ заголовками + объявленное «Всего»."""
-    p = Page(timeout)
+                timeout: int = 60, own_tab: bool = False) -> tuple[list[dict], int]:
+    """Список дел страницы описи с РАЗВЁРНУТЫМИ заголовками + объявленное «Всего».
+
+    own_tab=True обязателен, если параллельно работает сборщик (см. _tab).
+    """
+    p = Page(timeout, own_tab=own_tab)
     try:
         p.goto(url, wait)
         p.evaluate(EXPAND_JS)
