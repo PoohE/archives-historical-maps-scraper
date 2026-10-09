@@ -1,0 +1,20 @@
+{
+  "generated": "2026-10-09 08:08",
+  "source": "C:\\arch\\output\\prlib_catalog_full_20261008_v8_1",
+  "rules_sha256": "25b1981dd15030023e6db403e9aee67167b5c168ec45289130b3f85ad63d52fa",
+  "input": 451,
+  "keep_cartographic": 36,
+  "keep_spatial_data": 7,
+  "review_subject_unconfirmed": 378,
+  "dropped": 30,
+  "conservation_delta": 0,
+  "reasons": {
+    "subject_unconfirmed": 386,
+    "regional_relevance_needs_review": 46,
+    "territory_not_resolved": 15,
+    "out_of_region": 1,
+    "level_subject_needs_review": 1,
+    "city_level": 2
+  },
+  "note": "Гейт применён к набору v8.1, который собирал содержимое коллекций целиком (material_type пуст у 450 из 451, всё помечено source_type_requires_review)."
+}
