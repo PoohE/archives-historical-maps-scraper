@@ -47,3 +47,7 @@ input_rgia_opisi/**/*.jpg
 # ...но результаты распознавания описей держим под git (перебивает output/ и *.csv выше)
 !reference_sets/rgia_f380_opisi_vision_20261012/
 !reference_sets/rgia_f380_opisi_vision_20261012/**
+
+# Журналы решений гейта — принимались руками, повторным прогоном не восстановятся
+!reference_sets/scope_decisions_journals/
+!reference_sets/scope_decisions_journals/**
