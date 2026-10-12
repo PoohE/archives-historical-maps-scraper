@@ -40,3 +40,10 @@ credentials.json
 # Large files
 *.zip
 *.tar.gz
+
+# Сканы описей — кэш, восстановимы с fgurgia (scripts_rgia/fetch_rgia_opis_images.py)
+input_rgia_opisi/**/*.jpg
+
+# ...но результаты распознавания описей держим под git (перебивает output/ и *.csv выше)
+!reference_sets/rgia_f380_opisi_vision_20261012/
+!reference_sets/rgia_f380_opisi_vision_20261012/**
