@@ -31,9 +31,16 @@
 Выход — ТОЛЬКО локальная папка (`C:\\arch\\output\\...`): состояние переписывается часто,
 на Яндекс.Диске это даёт конфликтные копии и `PermissionError [WinError 5]`.
 
+**Список описей берётся с сайта архива, а не обходом id** (решение 13.10.2026). В
+«Электронном каталоге» `gaso-smolensk.ru/nauchno-spravochnyj-apparat/jelektronnyj-katalog/`
+у каждого фонда стоят прямые ссылки на его описи с их id портала — это точнее обхода
+`--map 1-2600`, где номер фонда приходилось угадывать по подписи скана. Отсюда режим
+`--map-ids`: та же карта `opis_map.jsonl`, но по готовому списку id.
+
 Режимы:
     python -B scripts_gaso/gaso_scan_collector.py --probe 154,155,156,800,1600
     python -B scripts_gaso/gaso_scan_collector.py --map 1-2600
+    python -B scripts_gaso/gaso_scan_collector.py --map-ids 155,377,378 --out C:\\arch\\output\\gaso
     python -B scripts_gaso/gaso_scan_collector.py --download --funds 814,428,13,576,334,259
 """
 from __future__ import annotations
@@ -293,6 +300,40 @@ def mode_map(lo: int, hi: int, out: Path) -> int:
     return 0
 
 
+def mode_map_ids(ids: list[int], out: Path) -> int:
+    """Карта по готовому списку id описей (маршрут через Электронный каталог).
+
+    Пишет тот же `opis_map.jsonl`, что и `--map`, поэтому `--download` работает без правок.
+    Повторный запуск дописывает только отсутствующие id — состояние берётся из самой карты.
+    """
+    map_f = out / "opis_map.jsonl"
+    done = set()
+    if map_f.exists():
+        done = {json.loads(ln)["id"] for ln in map_f.open(encoding="utf-8") if ln.strip()}
+        print(f"в карте уже {len(done)} описей, доберу остальные")
+    with_scan, no_scan, absent = 0, 0, 0
+    with map_f.open("a", encoding="utf-8") as fh:
+        for oid in ids:
+            if oid in done:
+                continue
+            r = read_opis(oid)
+            fh.write(json.dumps(r, ensure_ascii=False) + "\n")
+            fh.flush()
+            if r.get("files_count"):
+                with_scan += 1
+                print(f"  id={oid}: ф.{r.get('fund', '?')} оп.{r.get('opis', '?')} "
+                      f"{r.get('scan_kind')} ×{r['files_count']}")
+            elif r.get("exists"):
+                no_scan += 1
+                print(f"  id={oid}: опись есть, скана НЕТ")
+            else:
+                absent += 1
+                print(f"  id={oid}: пусто ({r.get('error', '?')})")
+            time.sleep(DELAY)
+    print(f"\nитог: со сканом {with_scan}, без скана {no_scan}, пустых {absent}")
+    return 0
+
+
 def mode_download(out: Path, funds: set[str]) -> int:
     rows = [json.loads(ln) for ln in (out / "opis_map.jsonl").open(encoding="utf-8")
             if ln.strip()]
@@ -390,6 +431,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--probe", help="id через запятую — разведка без записи")
     ap.add_argument("--map", help="диапазон id вида 1-2600")
+    ap.add_argument("--map-ids", dest="map_ids",
+                    help="id описей через запятую — карта по списку из Электронного каталога")
     ap.add_argument("--download", action="store_true")
     ap.add_argument("--reparse", action="store_true",
                     help="переразобрать подписи в собранной карте, без сети")
@@ -403,6 +446,8 @@ def main() -> int:
         return mode_probe([int(x) for x in args.probe.split(",") if x.strip()])
     if args.reparse:
         return mode_reparse(out)
+    if args.map_ids:
+        return mode_map_ids([int(x) for x in args.map_ids.split(",") if x.strip()], out)
     if args.map:
         lo, hi = (int(x) for x in args.map.split("-"))
         return mode_map(lo, hi, out)
@@ -412,7 +457,7 @@ def main() -> int:
             print("нужен --funds")
             return 1
         return mode_download(out, funds)
-    print("укажите --probe, --map или --download")
+    print("укажите --probe, --map, --map-ids или --download")
     return 1
 
 

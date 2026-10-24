@@ -17,7 +17,7 @@ import re
 import time
 from dataclasses import asdict, dataclass
 from typing import Iterator
-from urllib.parse import urljoin
+from urllib.parse import parse_qs, urljoin, urlsplit
 
 import requests
 from bs4 import BeautifulSoup
@@ -47,6 +47,17 @@ class RgadaRecord:
 def _years(value: str) -> tuple[int | None, int | None]:
     found = [int(x) for x in re.findall(r"\b(1[5-9]\d{2}|20\d{2})\b", value)]
     return (min(found), max(found)) if found else (None, None)
+
+
+def metadata_years(record: RgadaRecord) -> tuple[int | None, int | None]:
+    """Recover result-level dates without requesting a card.
+
+    The result URL itself retains opisanie; it often has the collection interval
+    absent from the visible table cell. Only already received metadata is used.
+    """
+    description = parse_qs(urlsplit(record.url).query).get("opisanie", [""])[0]
+    text = " ".join((record.years, record.list_name, record.annotation, description))
+    return _years(BeautifulSoup(text, "html.parser").get_text(" ", strip=True))
 
 
 def _get(session: requests.Session, params: dict[str, str | int], retries: int = 2) -> requests.Response:
@@ -108,8 +119,44 @@ def _parse_page(html: str, debug: bool = False) -> tuple[list[RgadaRecord], bool
     return records, has_next
 
 
+def keyword_matches(record: RgadaRecord, keywords: tuple[str, ...] | list[str]) -> tuple[str, ...]:
+    """Return cartographic concepts found locally in result metadata.
+
+    Inflectional forms are accepted, while token boundaries prevent arbitrary
+    substring matches. The returned values retain the vocabulary of the scope.
+    """
+    text = " ".join((record.fund_name, record.list_name, record.annotation))
+    normalized = text.casefold().replace("ё", "е")
+    patterns = {
+        "карта": r"(?<!\w)карт(?:а|ы|е|у|ой|ою|ам|ами|ах)(?!\w)",
+        "план": r"(?<!\w)план(?:[а-я]*)?(?!\w)",
+        "атлас": r"(?<!\w)атлас(?:[а-я]*)?(?!\w)",
+        "съёмка": r"(?<!\w)съемк(?:а|и|е|у|ой|ою|ам|ами|ах)(?!\w)",
+        "чертёж": r"(?<!\w)чертеж(?:[а-я]*)?(?!\w)",
+        "топографическая": r"(?<!\w)топографическ(?:[а-я]*)?(?!\w)",
+    }
+    return tuple(
+        keyword
+        for keyword in keywords
+        if re.search(
+            patterns.get(keyword.casefold(), re.escape(keyword.casefold())),
+            normalized,
+        )
+    )
+
+
+def keyword_match_counts(
+    records: list[RgadaRecord], keywords: tuple[str, ...] | list[str]
+) -> dict[str, int]:
+    """Count raw result rows per concept before candidate filtering."""
+    return {
+        keyword: sum(keyword in keyword_matches(record, (keyword,)) for record in records)
+        for keyword in keywords
+    }
+
+
 def search_rgada(query: str, max_pages: int = 5, delay: float = 1.0,
-                 debug: bool = False) -> Iterator[RgadaRecord]:
+                 debug: bool = False, keywords: tuple[str, ...] | list[str] | None = None) -> Iterator[RgadaRecord]:
     """Ищет строку в названиях фондов и описей, удаляя повторы по URL."""
     session = requests.Session()
     session.headers.update(HEADERS)
@@ -131,7 +178,8 @@ def search_rgada(query: str, max_pages: int = 5, delay: float = 1.0,
                 if record.url not in seen:
                     seen.add(record.url)
                     added += 1
-                    yield record
+                    if keywords is None or keyword_matches(record, keywords):
+                        yield record
             # Некоторые страницы РГАДА сохраняют ссылку «следующая» после
             # последней страницы и возвращают уже виденные строки. Без этого
             # условия полный проход бессмысленно повторяет один и тот же набор.

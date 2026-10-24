@@ -27,7 +27,7 @@ smolensk_lib, permkrai) — легаси-версии были написаны 
 Добавление нового источника = один SourceSpec в SOURCES + адаптер-функция.
 Новый отдельный скрипт писать НЕ нужно, если сайт укладывается в query/walk.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Callable, Iterator
 
 import searcher_libraries
@@ -77,13 +77,16 @@ def _from_permkrai(query: str, year_from: int | None, year_to: int | None,
                    max_pages: int) -> Iterator[LibraryRecord]:
     from scrapers import searcher_permkrai as m
     for r in m.search(query, year_from=year_from, year_to=year_to):
+        raw = asdict(r)
         yield LibraryRecord(
-            title=r.title,
+            title=r.title, author=r.author,
             year_from=r.year_from, year_to=r.year_to,
             description=r.description, url=r.url,
             library_id="permkrai", library_name=r.library_name,
             extra={"url_source": r.url_source, "owner": r.owner,
-                   "open_access": r.open_access, "tags": r.tags},
+                   "open_access": r.open_access, "tags": r.tags,
+                   "scale_raw": r.scale_raw, "permkrai_record": raw,
+                   "evidence": r.extra_json.get("evidence", {})},
         )
 
 
@@ -190,7 +193,8 @@ def is_walk(source_id: str) -> bool:
 
 def search(source_id: str, query: str = "",
            year_from: int | None = None, year_to: int | None = None,
-           max_pages: int = 5) -> Iterator[LibraryRecord]:
+           max_pages: int = 5,
+           coverage=None, resume=None, on_progress=None) -> Iterator[LibraryRecord]:
     """
     Единая точка входа. Исключения скраперов пробрасываются наверх —
     оркестратор различает сетевую ошибку и пустой результат.
@@ -198,6 +202,11 @@ def search(source_id: str, query: str = "",
     if source_id not in SOURCES:
         raise KeyError(
             f"Неизвестный источник {source_id!r}. Доступны: {', '.join(SOURCES)}")
+    if source_id == "prlib" and coverage is not None:
+        yield from searcher_libraries._search_prlib(
+            query, year_from, year_to, max_pages, coverage=coverage,
+            resume=resume, on_progress=on_progress)
+        return
     yield from SOURCES[source_id].searcher(query, year_from, year_to, max_pages)
 
 

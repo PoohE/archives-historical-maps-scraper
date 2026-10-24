@@ -84,7 +84,7 @@ GEO_TERMS = ["Калуж", "Перм", "Смолен", "Яросла"]
 # Географические фильтры для постфильтрации результатов
 GEO_MAP = {
     "Калуж": ["Калуж", "калуж"],
-    "Перм":  ["Перм", "перм", "Уральск"],
+    "Перм":  ["Перм", "перм"],
     "Смолен": ["Смолен", "смолен"],
     "Яросла": ["Яросла", "яросла"],
 }
@@ -118,6 +118,12 @@ class SverdRecord:
     geo_query: str = ""
     library_id: str = "sverdlovsk"
     library_name: str = "Свердловская ОУНБ им. В. Г. Белинского"
+    review_reason: str = ""
+    source_text: str = ""
+
+
+class SourceResponseError(ValueError):
+    """A source error/unknown response is not an empty search result."""
 
 
 # ── Сессия ────────────────────────────────────────────────────────────────────
@@ -239,16 +245,19 @@ def _is_geo_map(title: str, annotation: str, geo: str) -> bool:
     text = (title + " " + annotation).lower()
     # Фильтр по территории
     terms = GEO_MAP.get(geo, [geo.lower()])
-    if not any(t.lower() in text for t in terms):
-        # Если нет привязки к конкретной губернии — проверяем общие гео-слова
-        # (карта могла быть каталогизирована без указания региона)
-        if not any(w in text for w in [w.lower() for w in MAP_WORDS[:4]]):
-            return False
+    if geo and not any(t.lower() in title.lower() for t in terms):
+        return False
     # Исключаем явно не географические «карты»
     skip = ["трудового процесса", "технологическ", "качества", "учёта"]
     if any(s in text for s in skip):
         return False
     return True
+
+
+def _territory_review(title: str, annotation: str, geo: str) -> str:
+    if not geo or _is_geo_map(title, annotation, geo):
+        return ""
+    return "territory_or_document_type_not_confirmed"
 
 
 def _parse_results(html: str, geo: str, debug: bool = False) -> tuple[list[SverdRecord], int]:
@@ -263,6 +272,10 @@ def _parse_results(html: str, geo: str, debug: bool = False) -> tuple[list[Sverd
 
     soup = BeautifulSoup(html, "lxml")
     full_text = soup.get_text(" ", strip=True)
+    if soup.find("error") or "не указан обязательный аргумент" in full_text.lower():
+        raise SourceResponseError("source_cgi_error")
+    if any(marker in html.lower() for marker in ("captcha", 'type="password"', "type='password'")):
+        raise SourceResponseError("source_access_barrier")
 
     # Всего найдено
     total = 0
@@ -271,6 +284,10 @@ def _parse_results(html: str, geo: str, debug: bool = False) -> tuple[list[Sverd
         m = re.search(r"Найдено[:\s]*(\d+)", full_text, re.I)
     if m:
         total = int(m.group(1))
+    else:
+        raise SourceResponseError("unrecognized_result_count")
+    if total == 0:
+        return [], 0
 
     records: list[SverdRecord] = []
 
@@ -295,14 +312,18 @@ def _parse_results(html: str, geo: str, debug: bool = False) -> tuple[list[Sverd
             y_from, y_to = _parse_years(content)
             ann_m = re.search(r"([А-Яа-я][^.]{30,}\.$)", content)
             annotation = ann_m.group(1).strip()[:300] if ann_m else ""
-            if title and (not geo or _is_geo_map(title, annotation, geo)):
+            if title:
                 records.append(SverdRecord(
                     title=title[:200],
                     year_from=y_from,
                     year_to=y_to,
                     annotation=annotation,
                     geo_query=geo,
+                    review_reason=_territory_review(title, annotation, geo),
+                    source_text=content,
                 ))
+        if not records:
+            raise SourceResponseError("positive_count_without_parsed_records")
         return records, total
 
     for row in rows:
@@ -347,8 +368,7 @@ def _parse_results(html: str, geo: str, debug: bool = False) -> tuple[list[Sverd
             continue
 
         # Постфильтрация по географии и типу карты
-        if geo and not _is_geo_map(title, annotation, geo):
-            continue
+        review_reason = _territory_review(title, annotation, geo)
 
         records.append(SverdRecord(
             title=title[:200],
@@ -359,8 +379,12 @@ def _parse_results(html: str, geo: str, debug: bool = False) -> tuple[list[Sverd
             location=location,
             annotation=annotation,
             geo_query=geo,
+            review_reason=review_reason,
+            source_text=text,
         ))
 
+    if not records:
+        raise SourceResponseError("positive_count_without_parsed_records")
     return records, total
 
 

@@ -8,7 +8,7 @@ from pathlib import Path
 try:
     from .searcher_neb import parse_card_html
 except ImportError:
-    from searcher_neb import parse_card_html
+    from scrapers.searcher_neb import parse_card_html
 
 
 def notion_row(r):
@@ -21,7 +21,7 @@ def notion_row(r):
     return {'Название источника':r.title,'Автор / составитель':r.author,
         'Год создания (нижняя)':r.year_from,'Год создания (верхняя)':r.year_to,
         'Место создания':r.place,'Библиотечный шифр':'Код НЭБ: '+r.identifier,
-        'Библиографическое описание':r.bibliography,'Описание':r.description,
+        'Описание':'\n'.join(filter(None, [r.bibliography, r.description])),
         'Путь / URL к файлу':r.url_viewer,'Прямая ссылка на файл изображения':r.url_download,
         'Ссылка на онлайн-архив':r.url,'Оригинальный масштаб':e.get('scale_original',''),
         'Масштаб (знаменатель)':e.get('scale_denominator'),

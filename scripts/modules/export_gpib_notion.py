@@ -14,7 +14,7 @@ FIELDS = [
     "Название источника", "Ссылка на онлайн-архив",
     "Прямая ссылка на файл изображения", "Связанное издание: название",
     "Связанное издание: URL", "Связанное издание: год издания",
-    "Связанное издание: библиографическое описание",
+    "Связанное издание: автор / ответственность",
     "Оригинальный масштаб", "Масштаб (знаменатель)", "Описание",
     "Автор / составитель", "Место создания", "Примечания", "Автор внесения",
 ]
@@ -51,6 +51,9 @@ def convert(entry, choices):
     row["Связанное издание: название"] = full_edition_title
     edition = choose(editions, choice.get("edition_url"), "url")
     if edition:
+        # Preserve the selected edition's responsibility, never the map author
+        # or the series publisher. Do not borrow from an unselected volume.
+        row["Связанное издание: автор / ответственность"] = edition.get("author") or ""
         for source, target in [("title", "название"), ("url", "URL")]:
             row["Связанное издание: " + target] = edition.get(source) or ""
         if full_edition_title:
@@ -75,7 +78,11 @@ def convert(entry, choices):
             summary.append("Место издания: " + place)
         if publisher:
             summary.append("Издатель: " + publisher)
-        row["Связанное издание: библиографическое описание"] = "\n".join(filter(None, summary))
+        # v1.6 has no standalone edition bibliography field. Preserve the
+        # selected edition wording in Description; the five relation fields
+        # carry the structured edition information.
+        description = edition.get("description") or "\n".join(filter(None, summary))
+        row["Описание"] = "\n\n".join(filter(None, [row.get("Описание"), description]))
     elif editions:
         issues.append("Выбрать связанное издание: " + json.dumps(editions, ensure_ascii=False))
     images = extra.get("image_urls") or []

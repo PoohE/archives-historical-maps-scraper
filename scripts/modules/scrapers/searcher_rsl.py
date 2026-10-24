@@ -306,12 +306,46 @@ def _parse_content_html(html: str, debug: bool = False) -> list[RslRecord]:
     return records
 
 
-def search_query(session: requests.Session,
+class RslIncompleteSearch(RuntimeError):
+    """Bounded or interrupted output must not be accepted as complete."""
+    def __init__(self, coverage):
+        self.coverage = dict(coverage)
+        super().__init__("Incomplete RSL search: " + coverage["stop_reason"])
+
+
+def search_query(session, query, year_from=None, year_to=None,
+                 free_only=False, debug=False, *, coverage=None):
+    report = coverage if coverage is not None else {}
+    if report:
+        raise ValueError("Use a new empty coverage dict for each query")
+    report.update(status="running", stop_reason="", current_page=0,
+                  pages_received=0, pages_processed=0, records_yielded=0,
+                  full_search_complete=False)
+    try:
+        yield from _search_query_impl(session, query, year_from, year_to,
+                                     free_only, debug, report)
+    except RslIncompleteSearch:
+        raise
+    except Exception as exc:
+        report["status"] = "partial" if report["pages_processed"] else "failed"
+        report["error_type"] = type(exc).__name__
+        if not report["stop_reason"]:
+            report["stop_reason"] = ("transport_or_http_error"
+                                     if isinstance(exc, requests.RequestException)
+                                     else "invalid_response_or_parser_error")
+        raise
+    finally:
+        if report["status"] == "running":
+            report.update(status="interrupted", stop_reason="consumer_stopped")
+
+
+def _search_query_impl(session: requests.Session,
                  query: str,
                  year_from: int | None = None,
                  year_to: int | None = None,
                  free_only: bool = False,
-                 debug: bool = False) -> Iterator[RslRecord]:
+                 debug: bool = False,
+                 coverage: dict | None = None) -> Iterator[RslRecord]:
     """
     Поиск по одному запросу. Обходит до MaxDisplayPage=100 страниц.
     Исключения пробрасываются наверх.
@@ -336,27 +370,51 @@ def search_query(session: requests.Session,
         if free_only:
             data["SearchFilterForm[accessFree]"] = "1"
 
+        coverage["current_page"] = page
         time.sleep(2.0)
         try:
             resp = _post_with_retry(session, data)
         except requests.RequestException as exc:
-            print(f"[РГБ] Прогон прерван после страницы {page - 1}: {exc}")
-            break
+            print(f"[РГБ] Прогон прерван после страницы {page - 1}: {type(exc).__name__}")
+            raise
         j = resp.json()
-
-        total_hits = j.get("TotalHits", 0)
-        max_display = j.get("MaxDisplayPage", 100)
-        content_html = j.get("content", "")
+        if not isinstance(j, dict):
+            raise ValueError("Search response must be an object")
+        total_hits = j.get("TotalHits")
+        max_display = j.get("MaxDisplayPage")
+        page_size = j.get("PageSize")
+        content_html = j.get("content")
+        if (type(total_hits) is not int or total_hits < 0
+                or type(max_display) is not int or max_display < 0
+                or type(page_size) is not int or page_size <= 0
+                or not isinstance(content_html, str)):
+            raise ValueError("Invalid search pagination metadata")
+        signature = [total_hits, max_display, page_size]
+        if page == 1:
+            coverage.update(reported_total_hits=total_hits,
+                            reported_max_pages=max_display, page_size=page_size,
+                            metadata_signature=signature)
+        elif signature != coverage["metadata_signature"]:
+            coverage["stop_reason"] = "pagination_metadata_changed"
+            raise ValueError("Pagination metadata changed during query")
+        coverage["pages_received"] += 1
 
         if page == 1:
             print(f"[РГБ] {query!r}: {total_hits} результатов, "
                   f"доступно страниц: {min(max_display, 100)}")
 
-        if not content_html or content_html.strip() == "":
-            break
+        if not content_html.strip():
+            if page == 1 and total_hits == 0:
+                coverage.update(status="empty_reported", stop_reason="api_reports_zero")
+                return
+            coverage.update(status="partial", stop_reason="unexpected_empty_content")
+            raise RslIncompleteSearch(coverage)
+        if total_hits == 0 or max_display == 0:
+            raise ValueError("Content contradicts pagination metadata")
 
         records = _parse_content_html(content_html, debug=(debug and page == 1))
 
+        coverage["pages_processed"] += 1
         for rec in records:
             if rec.url in seen_urls:
                 continue
@@ -367,12 +425,18 @@ def search_query(session: requests.Session,
             if year_to and rec.year_from and rec.year_from > year_to:
                 continue
             found_total += 1
+            coverage["records_yielded"] = found_total
             yield rec
 
         print(f"[РГБ]   стр.{page}: {len(records)} карт (KGR), итого {found_total}")
 
         if page >= min(max_display, 100):
-            break
+            if max_display > 100 or total_hits > page * page_size:
+                reason = "local_page_cap" if max_display > 100 else "api_result_cap"
+                coverage.update(status="partial", stop_reason=reason)
+                raise RslIncompleteSearch(coverage)
+            coverage.update(status="reported_end", stop_reason="reported_last_page")
+            return
 
 
 def search(query: str,

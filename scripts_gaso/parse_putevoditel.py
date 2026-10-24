@@ -92,7 +92,7 @@ def main() -> int:
         lines.append(f"| Ф. {r['fund']} | {r['mentions']} | {terms} | {sample} |")
     (OUT / "KARTO_FONDY.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    print(f"\nтоп-15 по числу упоминаний:")
+    print("\nтоп-15 по числу упоминаний:")
     for r in strong[:15]:
         print(f"  Ф.{r['fund']:<8} упом.{r['mentions']:<3} "
               f"{(r['samples'][0] if r['samples'] else '')[:88]}")

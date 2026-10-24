@@ -96,6 +96,47 @@ UA = (
 HEADERS = {"User-Agent": UA, "Accept-Language": "ru-RU,ru;q=0.9"}
 
 
+def resolve_author(explicit_author: str, bibliography: str) -> tuple[str, str]:
+    """Return a person named on the card or in its title/responsibility area.
+
+    Imprint statements (including named printers) are never author evidence.
+    Ambiguous corporate responsibility remains in the bibliography for review.
+    """
+    forbidden = re.compile(r'типограф|литограф|цинкограф|издательств|изд-во|\bпеч\.', re.I)
+
+    def valid(value: str) -> bool:
+        value = value.strip()
+        return (len(value) > 3 and not forbidden.search(value)
+                and bool(re.search(r'[А-ЯЁ][а-яё]{2,}', value))
+                and not re.fullmatch(r'(?:[А-ЯЁ]\.?\s*)+', value))
+
+    explicit_author = explicit_author.strip()
+    if valid(explicit_author):
+        return explicit_author, 'explicit_card_author'
+
+    # A space-colon-space or the GOST imprint separator closes the title area.
+    # In particular, never search a later printer or publisher statement.
+    title_area = re.split(r'\s+\.\s*[-–—]\s*|\s+:\s+', bibliography, maxsplit=1)[0]
+    if ' / ' not in title_area:
+        return '', ''
+    responsibility = title_area.rsplit(' / ', 1)[1].strip().rstrip('. ')
+    if forbidden.search(responsibility):
+        return '', ''
+    if re.search(r'\bИакова\s+Шестакова\b', responsibility, re.I):
+        return 'Иаков Шестаков', 'bibliography_person_responsibility'
+    captain = re.search(r'\bкапитана\s+([А-ЯЁ][а-яё]{2,})\b', responsibility)
+    if captain:
+        return 'капитан ' + captain.group(1), 'bibliography_person_responsibility'
+    person = re.fullmatch(
+        r'(?:(?:издание|изд\.|сост\.|составил|соч\.)\s+)?'
+        r'((?:[А-ЯЁ]\.\s*){1,2}[А-ЯЁ][а-яё]{2,}'
+        r'|[А-ЯЁ][а-яё]{2,}\s+[А-ЯЁ][а-яё]{2,})',
+        responsibility, re.I,
+    )
+    candidate = person.group(1).strip() if person else ''
+    return (candidate, 'bibliography_person_responsibility') if valid(candidate) else ('', '')
+
+
 @dataclass
 class PermRecord:
     title: str = ""
@@ -116,12 +157,18 @@ class PermRecord:
     scale_raw: str = ""
     sheets: str = ""
     url_download: str = ""
+    url_image: str = ""
     url_viewer: str = ""
     date_raw: str = ""
     publication_statement: str = ""
     publication_year_from: int | None = None
     publication_year_to: int | None = None
     publication_date_qualifier: str = ""
+    card_text: str = ""
+    card_html: str = ""
+    identifiers_raw: dict = field(default_factory=dict)
+    dates_raw: dict = field(default_factory=dict)
+    series_raw: str = ""
     extra_json: dict = field(default_factory=dict)
 
 
@@ -157,6 +204,29 @@ def _field_value(soup: BeautifulSoup, label_re: str) -> str:
                                <div class="field-items"><div class="field-item">1775</div></div>
     """
     pattern = re.compile(label_re, re.I)
+
+    # Current rendered Drupal cards put the bibliography in a div table.  A
+    # row has a label cell followed by its value cell; extracting the row as a
+    # flat string would silently merge the two and lose the full description.
+    for table in soup.select("article.node-pdf .subj-library-table, .subj-library-table"):
+        for row in table.select("div[style*='table-row'], .table-row"):
+            cells = [
+                child for child in row.find_all("div", recursive=False)
+                if child.get_text(" ", strip=True)
+            ]
+            if not cells:
+                continue
+            label = cells[0].get_text(" ", strip=True)
+            if not pattern.search(label):
+                continue
+            value = " ".join(cell.get_text(" ", strip=True) for cell in cells[1:]).strip()
+            if value:
+                return value
+            # Some Drupal themes wrap the cells in one extra div.
+            nested = [child for child in cells[0].find_all("div", recursive=False)
+                      if child.get_text(" ", strip=True)]
+            if len(nested) >= 2:
+                return " ".join(child.get_text(" ", strip=True) for child in nested[1:])
 
     # Вариант A: <dt> + <dd>
     for dt in soup.find_all("dt", string=pattern):
@@ -202,6 +272,66 @@ def _field_link(soup: BeautifulSoup, label_re: str) -> str:
     return ""
 
 
+def classify_card_html(html: str, require_pdf_node: bool = True) -> tuple[str, dict]:
+    """Classify a rendered node before treating it as a map record.
+
+    A thematic collection and a map card both use ``/node/{id}``.  The
+    v5 accepts rendered map cards only when Drupal identifies the node as a
+    PDF node (`body.node-type-pdf` or `article.node-pdf`).  This prevents a
+    neighbouring thematic collection from becoming a candidate merely because
+    it shares a `/node/{id}` URL.  The optional legacy mode exists solely for
+    parsing pre-v5 saved HTML; the rubric collector always uses the strict
+    default.
+    """
+    soup = BeautifulSoup(html, "lxml")
+    text = soup.get_text(" ", strip=True)
+    normalized = " ".join(text.casefold().replace("ё", "е").split())
+    labels = {
+        "date": bool(re.search(r"дата публикации", normalized)),
+        "bibliography": bool(re.search(r"библиографическое описание", normalized)),
+        "holder": bool(re.search(r"фондодержатель", normalized)),
+    }
+    type_badge = any(
+        re.fullmatch(r"\s*карта\s*", node, flags=re.I)
+        for node in soup.find_all(string=True)
+    )
+    action_labels = {
+        "pdf": bool(re.search(r"(^|\s)pdf(\s|$)", normalized, re.I)),
+        "viewer": bool(re.search(r"(^|\s)открыть(\s|$)", normalized, re.I)),
+    }
+    detail_count = sum(labels.values())
+    body = soup.select_one("body")
+    body_pdf = bool(body and "node-type-pdf" in (body.get("class") or []))
+    article_pdf = bool(soup.select_one("article.node-pdf[id^='node-'], article#node-23121.node-pdf"))
+    evidence = {
+        "body_node_type_pdf": body_pdf,
+        "article_node_pdf": article_pdf,
+        "detail_labels": [key for key, present in labels.items() if present],
+        "type_badge_map": type_badge,
+        "card_actions": [key for key, present in action_labels.items() if present],
+    }
+    if body_pdf or article_pdf:
+        return "map_card", evidence
+    if not require_pdf_node and detail_count >= 2 and (type_badge or any(action_labels.values())):
+        evidence["legacy_detail_fallback"] = True
+        return "map_card", evidence
+    collection = "тематические коллекции" in normalized
+    collection = collection or (detail_count == 0 and len(soup.select("a[href^='/node/']")) > 1)
+    if collection:
+        return "collection", evidence
+    return "non_pdf_node", evidence
+
+
+class PermIncompleteSearch(RuntimeError):
+    """A discovered pager requires verified traversal before returning results."""
+    def __init__(self, reason, discovered_urls):
+        self.reason = reason
+        self.report = {"status": "partial", "stop_reason": reason,
+                       "discovered_urls": list(discovered_urls),
+                       "full_search_complete": False}
+        super().__init__("PERMKRAI incomplete search: " + reason)
+
+
 def get_result_urls(query: str) -> list[str]:
     """
     Получает список URL карточек (/node/{id}) из поисковой выдачи.
@@ -226,7 +356,7 @@ def get_result_urls(query: str) -> list[str]:
     # Проверить наличие пагинации (на случай будущих обновлений CMS)
     pager = soup.select_one(".pager, .pagination, [class*=pager]")
     if pager:
-        print(f"[ПГКБ] Обнаружена пагинация — добавить цикл по страницам!")
+        raise PermIncompleteSearch("pagination_not_supported", urls)
 
     print(f"[ПГКБ] Найдено карточек для проверки: {len(urls)}")
     return urls
@@ -257,14 +387,21 @@ def parse_card_html(html: str, url: str, year_from=None, year_to=None,
         print(soup.prettify()[:4000])
         print("─" * 60)
 
-    # ── Категория ─────────────────────────────────────────────────────────────
-    page_text = soup.get_text(" ", strip=True).lower()
-    if TARGET_CATEGORY not in page_text:
+    # ── Тип страницы ──────────────────────────────────────────────────────────
+    card_text = soup.get_text("\n", strip=True)
+    page_text = card_text.lower()
+    # The reusable offline adapter preserves compatibility with earlier saved
+    # source HTML.  The v5 rubric collector invokes strict classification
+    # before reaching this function.
+    card_kind, card_evidence = classify_card_html(html, require_pdf_node=False)
+    if card_kind != "map_card":
         return None
 
     # ── Заголовок ─────────────────────────────────────────────────────────────
+    article = soup.select_one("article.node-pdf")
     title_el = (
-        soup.select_one("h1.page-header")
+        (article.select_one("h1, .page-title") if article else None)
+        or soup.select_one("h1.page-header")
         or soup.select_one("h1")
         or soup.select_one(".node-title")
         or soup.select_one(".field--name-title")
@@ -281,14 +418,13 @@ def parse_card_html(html: str, url: str, year_from=None, year_to=None,
 
     # ── Остальные поля ────────────────────────────────────────────────────────
     bibliography = _field_value(soup, r"Библиографическое описание")
-    description_el = soup.select_one(
-        ".field--name-body, .field-name-body, .field-name-field-description, "
-        ".field-name-field-abstract, #content .node-body"
-    )
-    description = description_el.get_text(" ", strip=True) if description_el else ""
+    # The complete bibliographical description is the catalog's authoritative
+    # text for the notion "Описание"; body snippets are not a substitute.
+    description = bibliography
 
     url_source = _field_link(soup, r"Источник")
     owner = _field_value(soup, r"Фондодержатель")
+    series_raw = _field_value(soup, r"Серия")
 
     open_access = bool(re.search(r"открыт[омые]+\s+доступ", page_text, re.I))
 
@@ -300,26 +436,31 @@ def parse_card_html(html: str, url: str, year_from=None, year_to=None,
     author_nodes = soup.select('.field-name-field-authors a, .field--name-field-authors a')
     if not author_nodes:
         author_nodes = soup.select('.field-name-field-authors .field-item, .field--name-field-authors .field__item')
-    author = '; '.join(dict.fromkeys(x.get_text(' ', strip=True) for x in author_nodes))
+    explicit_author = '; '.join(dict.fromkeys(x.get_text(' ', strip=True) for x in author_nodes))
+    author, author_basis = resolve_author(explicit_author, bibliography)
     shelfmark = _field_value(soup, r'^Идентификатор\s*:')
     # Parse the main bibliographic segment only; inset scales are not main-map scales.
     main_bib = re.split(r'На карте|Доп\.?\s*карта|Врезк', bibliography, maxsplit=1, flags=re.I)[0]
     scale = re.search(r'(?<!\d)1\s*:\s*(\d[\d \u00a0]*)(?:,\s*([^.;]*дюйм[^.;]*))?', main_bib, re.I)
+    verst_scale = re.search(r'\d+(?:[.,]\d+)?\s*вер(?:ст(?:а|ы)?|\.)\s+в\s+(?:1\s+)?(?:английском\s+)?дюйм\w*', main_bib, re.I)
     scale_denominator = int(re.sub(r'\s', '', scale.group(1))) if scale else None
-    scale_raw = scale.group(0).strip() if scale else ''
+    scale_raw = (scale.group(0) if scale else (verst_scale.group(0) if verst_scale else '')).strip()
     sheets_match = re.search(r'(?:^|\s-\s)(\d+\s*л\.)', main_bib)
     publication = re.search(r'\[([^\[\]]*не ранее\s+(\d{4})[^\[\]]*)\]', main_bib, re.I)
     publication_statement = publication.group(1) if publication else ''
     publication_year_from = int(publication.group(2)) if publication else None
-    links = {'download': '', 'viewer': ''}
+    links = {'download': '', 'image': '', 'viewer': ''}
+    image_suffixes = ('.jpg', '.jpeg', '.png', '.tif', '.tiff', '.jp2', '.webp')
     for a in soup.select('a[href]'):
         label = a.get_text(' ', strip=True).casefold()
         href = urljoin(url, a['href'])
         parsed = urlparse(href)
         if parsed.scheme not in ('http', 'https') or parsed.hostname != 'lib.permkrai.ru':
             continue
-        if label == 'pdf' and '/pdfbook/download/' in parsed.path:
+        if label == 'pdf':
             links['download'] = href
+        elif parsed.path.lower().endswith(image_suffixes):
+            links['image'] = href
         elif label == 'открыть':
             links['viewer'] = href
 
@@ -336,11 +477,24 @@ def parse_card_html(html: str, url: str, year_from=None, year_to=None,
         tags=tags,
         author=author, shelfmark=shelfmark, scale_denominator=scale_denominator,
         scale_raw=scale_raw, sheets=sheets_match.group(1) if sheets_match else '',
-        url_download=links['download'], url_viewer=links['viewer'], date_raw=date_raw,
+        url_download=links['download'], url_image=links['image'], url_viewer=links['viewer'], date_raw=date_raw,
         publication_statement=publication_statement,
         publication_year_from=publication_year_from,
         publication_date_qualifier='не ранее' if publication else '',
-        extra_json={'date_basis': 'card_publication_field',
+        card_text=card_text, card_html=html,
+        identifiers_raw={'Идентификатор': shelfmark},
+        dates_raw={'Дата публикации': date_raw, 'Библиографическое описание': bibliography},
+        series_raw=series_raw,
+        extra_json={'evidence': {'url': url, 'sha256': hashlib.sha256(html.encode('utf-8')).hexdigest(),
+                    'hash_basis': 'parser_input_text_utf8', 'locator': 'ELiS card fields and bibliography'},
+                    'raw_detail': {'card_text_sha256': hashlib.sha256(card_text.encode('utf-8')).hexdigest(),
+                                   'card_html_sha256': hashlib.sha256(html.encode('utf-8')).hexdigest()},
+                    'card_classification': card_evidence,
+                    'card_type': 'Карта',
+                    'tags_raw': tags,
+                    'review_issues': [],
+                    'author_basis': author_basis,
+                    'date_basis': 'card_publication_field',
                     'publication_parse_status': 'lower_bound_only' if publication else 'not_parsed',
                     'download_checked': False, 'viewer_checked': False},
     )
@@ -359,9 +513,10 @@ def search(query: str,
     for url in urls:
         try:
             rec = parse_card(url, year_from, year_to, debug=debug)
-        except Exception as e:
-            print(f"[ПГКБ] Ошибка карточки {url}: {e}")
-            continue  # пропускаем карточку, но не прерываем весь поиск
+        except Exception as exc:
+            failure = PermIncompleteSearch("card_fetch_or_parse_error", [url])
+            failure.report["error_type"] = type(exc).__name__
+            raise failure from exc
         if rec:
             yield rec
         time.sleep(0.8)

@@ -2,7 +2,7 @@ import csv
 import tempfile
 import unittest
 from pathlib import Path
-from searcher_neb import parse_card_html
+from scrapers.searcher_neb import parse_card_html
 from neb_export import export_saved, notion_row
 SOURCE=Path('D:/Yandex.Disk/History&Geography/БД/Поиск онлайн архив/output/neb_browser_smoke_20260909_v2/raw/card_ручной запрос_1_29d80e29c9da229d.html')
 URL='https://rusneb.ru/catalog/000200_000018_RU_NLR_cart_8878/'

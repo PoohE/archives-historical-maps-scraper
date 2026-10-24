@@ -1,3 +1,8 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Репозиторий содержит ТОЛЬКО КОД И МЕТОДИКУ.
+# Данные каталога живут в Notion и на диске, в git им не место (решение 24.10.2026).
+# ─────────────────────────────────────────────────────────────────────────────
+
 # Python
 __pycache__/
 *.py[cod]
@@ -9,45 +14,62 @@ venv/
 ENV/
 *.egg-info/
 .eggs/
+.ruff_cache/
+.pytest_cache/
 
-# Logs and outputs
-*.log
+# Результаты прогонов и выгрузки каталога
 output/
-*.csv
+data/
+_archive/
+*.log
 checkpoint.json
-data/raw/
+state.json
+
+# Входные материалы: сканы описей, карточки, сохранённые страницы.
+# ⚠️ Сканы описей — материалы архивов, их перепубликация требует согласования.
+input_*/
 скрины архивов/
+*.jpg
+*.jpeg
+*.png
+*.pdf
+*.djvu
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
+# Выгрузки данных. Исключение ниже — журналы решений: это методика, а не данные.
+*.csv
+*.jsonl
+*.html
+*.htm
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Sensitive
-.env
-*.key
-*.pem
-credentials.json
-
-# Notion
-*.notion
-
-# Large files
-*.zip
-*.tar.gz
-
-# Сканы описей — кэш, восстановимы с fgurgia (scripts_rgia/fetch_rgia_opis_images.py)
-input_rgia_opisi/**/*.jpg
-
-# ...но результаты распознавания описей держим под git (перебивает output/ и *.csv выше)
-!reference_sets/rgia_f380_opisi_vision_20261012/
-!reference_sets/rgia_f380_opisi_vision_20261012/**
-
-# Журналы решений гейта — принимались руками, повторным прогоном не восстановятся
+# ⬇️ ЧТО ВСЁ-ТАКИ ХРАНИМ, вопреки правилам выше
+# Журналы решений с мотивировкой: воспроизвести прогоном их НЕЛЬЗЯ, в отличие от
+# самих выгрузок. Это принятые с экспертом решения о том, что входит в охват проекта.
 !reference_sets/scope_decisions_journals/
 !reference_sets/scope_decisions_journals/**
+
+# Конфигурация гейта и схема полей каталога — часть кода, не данные
+!scripts/modules/filter_keywords.json
+!scripts/modules/notion_schema.json
+!config/
+!config/**
+
+# Временные и битые файлы
+*.tmp
+*.bak
+*.bak_pre_*
+*.fix
+*.orig
+*~
+
+# Конфликтные копии облачной синхронизации
+*копия с компьютера*
+*Конфликтующая копия*
+*конфликтная_копия*
+
+# Секреты — никогда
+.env
+.env.*
+!.env.example
+*token*.txt
+*.key
+*.pem

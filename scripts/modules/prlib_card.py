@@ -38,6 +38,63 @@ def clean(node):
 
 
 def parse_card(html, url):
+    """Dispatch to the RUSMARC book template or the Gosudarika archival template."""
+    soup = BeautifulSoup(html, 'lxml')
+    if soup.select_one('.field-name-field-book-bd') is not None:
+        return parse_book_card(html, url)
+    if soup.select_one('table.table-book') is not None:
+        return parse_archival_card(html, url)
+    raise ValueError('Missing card title or bibliography; not an empty result')
+
+
+def parse_archival_card(html, url):
+    """Gosudarika archival-description template: table.table-book with tr.df-* rows."""
+    ident = card_id(url)
+    canonical = 'https://prlib.ru/item/' + ident
+    soup = BeautifulSoup(html, 'lxml')
+    title = clean(soup.select_one('h1.page-title'))
+    table = soup.select_one('table.table-book')
+    if not title or table is None:
+        raise ValueError('Missing card title or archival description table; not an empty result')
+    fields = {}
+    for tr in table.select('tr'):
+        df_class = next((c for c in tr.get('class', []) if c.startswith('df-')), None)
+        td = tr.select_one('td.df-value')
+        if df_class and td is not None:
+            fields[df_class[3:]] = td.get_text('\n', strip=True)
+    storage_id = fields.get('storage_id', '')
+    year_m = re.search(r'(1[5-9]\d{2}|20\d{2})', fields.get('dates', ''))
+    year = int(year_m[1]) if year_m else None
+    notes_text = fields.get('notes', '')
+    scale_m = re.search(r'([Мм]асштаб\s*:[^\n]+)', notes_text)
+    issues = ['source_type_requires_review']
+    if not storage_id:
+        issues.append('library_code_not_found')
+    if year is None:
+        issues.append('publication_year_missing_or_ambiguous')
+    description_parts = [notes_text]
+    if fields.get('fund'):
+        description_parts.append('Фонд-создатель: ' + fields['fund'])
+    description = '\n'.join(p for p in description_parts if p)
+    gallery = list(dict.fromkeys(urljoin(canonical, a['href']) for a in
+        soup.select('a.colorbox[data-colorbox-gallery][href]') if a.find('img')))
+    extra = dict(notes=[], review_issues=issues, library_code=storage_id,
+        original_holder=fields.get('record_creator', ''), electronic_copy_source='',
+        pages=fields.get('size', ''), part='', volume_description='',
+        scale_raw=scale_m[1] if scale_m else '',
+        gallery_urls=gallery, digital_url='', direct_map_image_url='',
+        source_type_code='', source_type_relation='', classification_basis='',
+        raw_bibliography_blocks=[f'{k}: {v}' for k, v in fields.items()],
+        archival_fields=fields,
+        evidence=dict(url=url, sha256=hashlib.sha256(html).hexdigest(),
+                      locator='table.table-book tr.df-*; h1.page-title'))
+    return dict(title=title, author='', year_from=year, year_to=year,
+        place='', description=description, url=canonical, library_id='prlib',
+        library_name='Президентская библиотека',
+        category='не классифицировано', extra=extra)
+
+
+def parse_book_card(html, url):
     ident = card_id(url)
     canonical = 'https://prlib.ru/item/' + ident
     soup = BeautifulSoup(html, 'lxml')
@@ -218,28 +275,33 @@ def fetch_card(url):
 def notion_row(rec):
     e = rec['extra']
     notes = list(e['notes'])
-    # e['pages'] is the publication extent, not a map's page/folio locator.
-    # Retain it in the original bibliography, never present it as a location.
-    notes.append('Местоположение карты внутри издания (листы/страницы) не установлено; объём издания сохранён в библиографическом описании.')
-    for label, key in [('Организация-издатель серии (по карточке)', 'publisher'), ('Место хранения оригинала', 'original_holder'),
-                       ('Источник электронной копии', 'electronic_copy_source'), ('Часть', 'part')]:
-        if e[key]:
-            notes.append(label + ': ' + e[key])
+    # e['pages'] — объём ИЗДАНИЯ (как везде в проекте, neb_export.py/rnb_primo_card.py/
+    # rgia_notion.py и др.), это законно кладётся в «Листы/страницы». Но это НЕ локатор
+    # конкретной карты внутри тома — где именно лежит карта, неизвестно, фиксируем в Примечания.
+    notes.append('Местоположение карты внутри издания (лист/страница конкретно) не установлено.')
     if e['review_issues']:
         notes.append('Требует проверки: ' + ', '.join(e['review_issues']))
-    # Автор ушёл в extra.raw_author_field при review-скоупе — берём оттуда, не из rec['author'].
-    author = e.get('raw_author_field') or e.get('volume_responsibility') or rec['author']
+    # Для этих записей сама карточка — текстовое издание (не карта с отдельным
+    # сопровождающим изданием), поэтому автор издания = автор записи. parse_card
+    # уже чистит/бланкует rec['author'] при неоднозначности (см. review_issues).
+    # «Связанное издание: автор/ответственность» оставляем для случаев типа
+    # «карта ВНУТРИ другого издания» (напр. атлас, приложенный к описанию) —
+    # решение пользователя 2026-10-10, здесь не заполняем автоматически.
+    author = rec.get('author', '')
     # Язык: по преобладанию кириллицы над латиницей в описании.
     text = rec.get('description', '') or ''
     lang = 'Русский' if len(re.findall(r'[а-яё]', text, re.I)) >= len(re.findall(r'[a-z]', text, re.I)) else ''
     vol = re.search(r'Т\.\s*(\d+)', e.get('volume_description', '') or '')
     return {'Название источника': rec['title'], 'Автор / составитель': author,
-        'Год создания (нижняя)': rec['year_from'], 'Год создания (верхняя)': rec['year_to'],
-        'Место создания': rec['place'], 'Библиографическое описание': rec['description'],
-        'Описание': e['volume_description'] or rec['description'],
+        # «Нижняя» остаётся пустой намеренно — library_dates.py::apply_dates() сам её очищает
+        # (у ПрБ year_from==year_to — это ОДИН год публикации, не независимая нижняя граница).
+        'Год создания (нижняя)': '', 'Год создания (верхняя)': rec['year_to'],
+        'Место создания': rec['place'],
+        'Описание': rec['description'],
         'Библиотечный шифр': e['library_code'],
-        # Держатель оригинала («ГПИБ») и источник копии («ПБ») — из extra, ранее терялись.
-        'Место хранения': e.get('original_holder', ''),
+        # Держатель оригинала («ГПИБ») уходит в relation «Архив хранения» (см. notion_export.py,
+        # holder=extra.get('original_holder')) — не дублировать как текст в «Место хранения».
+        'Место хранения': '',
         'Организация оцифровки': e.get('electronic_copy_source', '') or rec.get('library_name', ''),
         'Листы / страницы': e.get('pages', ''),
         'Номер в серии': vol[1] if vol else e.get('part', ''),
@@ -250,7 +312,7 @@ def notion_row(rec):
         # Только реальный файл-изображение; gallery_urls — превью, не файл (ловушка §5).
         'Прямая ссылка на файл изображения': e.get('direct_map_image_url', ''),
         'Примечания': '\n'.join(notes),
-        'Автор внесения': 'Агент'}
+        'Автор внесения': 'Агент', 'Статус приёмки': 'кандидат'}
 
 
 def export_record(rec, output):
@@ -258,8 +320,9 @@ def export_record(rec, output):
     (output / 'records_full.jsonl').write_text(json.dumps({'source': 'prlib', 'record': rec},
         ensure_ascii=False) + '\n', encoding='utf-8')
     row = notion_row(rec)
+    from notion_export import FIELDS
     with (output / 'notion_import.csv').open('x', encoding='utf-8-sig', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=list(row))
+        writer = csv.DictWriter(f, fieldnames=FIELDS)
         writer.writeheader()
         writer.writerow(row)
     review = dict(rows=1, issues=rec['extra']['review_issues'],

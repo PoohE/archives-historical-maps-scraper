@@ -46,6 +46,9 @@ class Tests(unittest.TestCase):
             with (p/'notion_import.csv').open(encoding='utf-8-sig',newline='') as f:
                 row=list(csv.DictReader(f))[0]
             self.assertEqual(row['Год создания (верхняя)'],'1800')
+            self.assertEqual(row['Год создания (нижняя)'],'')
+            self.assertEqual(row['Листы / страницы'],'')
+            self.assertIn('Объём карты дословно: 1 л.', row['Примечания'])
             self.assertEqual(row['Масштаб (знаменатель)'],'450000')
             self.assertEqual(row['Описание'],r['description'])
             self.assertEqual(row['Связанное издание: URL'],'')

@@ -42,6 +42,27 @@ class CardTests(unittest.TestCase):
         self.assertIn('source_type_requires_review', rec['extra']['review_issues'])
         self.assertNotEqual(rec['category'], 'карты')
 
+    def test_extent_is_not_map_locator(self):
+        rec = parse_card(self.raw, self.url)
+        row = notion_row(rec)
+        self.assertEqual(row['Листы / страницы'], '')
+        self.assertIn('563, 79 с., 56 л.', row['Описание'])
+        self.assertEqual(row['Описание'], rec['description'])
+        self.assertTrue(rec['extra']['pages'])  # Raw extent is not discarded.
+        self.assertIn('не установлено', row['Примечания'])
+
+    def test_publisher_and_compiler_roles_stay_separate(self):
+        from notion_export import normalize
+        rec = parse_card(self.raw, self.url)
+        row, audit = normalize({'source': 'prlib', 'record': rec})
+        self.assertEqual(row['Автор / составитель'], '')
+        self.assertEqual(row['Связанное издание: автор / ответственность'], 'Попроцкий М.; составил Генерального штаба подполковник М. Попроцкий. ч. 2.')
+        self.assertIn('Главное управление Генерального штаба', row['Описание'])
+        self.assertIn('Департамент Генерального штаба', row['Описание'])
+        self.assertNotIn('Организация-издатель серии', row['Примечания'])
+        self.assertIn('map_page_locator_not_established', audit['issues'])
+        self.assertEqual(audit['validation_errors'], [])
+
     def test_empty_or_error_page(self):
         with self.assertRaises(ValueError):
             parse_card(b'<h1>Access denied</h1>', self.url)
@@ -66,10 +87,13 @@ class CardTests(unittest.TestCase):
             with (output / 'notion_import.csv').open(encoding='utf-8-sig', newline='') as f:
                 rows = list(csv.DictReader(f))
             self.assertEqual(len(rows), 1)
-            self.assertEqual(rows[0]['Год создания (нижняя)'], '1864')
-            self.assertEqual(rows[0]['Путь / URL к файлу'], self.url)
+            self.assertEqual(rows[0]['Год создания (нижняя)'], '')
+            self.assertEqual(rows[0]['Год создания (верхняя)'], '1864')
+            self.assertEqual(len(rows[0]), 64)
+            self.assertEqual(rows[0]['Статус приёмки'], 'кандидат')
+            self.assertEqual(rows[0]['Путь / URL к файлу'], '')
             self.assertNotIn('Тип источника', rows[0])
-            self.assertEqual(rows[0]['Библиографическое описание'], rec['description'])
+            self.assertEqual(rows[0]['Описание'], rec['description'])
             meta = json.loads((output / 'export_review.json').read_text(encoding='utf-8'))
             self.assertEqual(meta['relations'][0]['code'], 'C4')
             with self.assertRaises(FileExistsError):
@@ -78,13 +102,47 @@ class CardTests(unittest.TestCase):
     def test_search_to_full_record(self):
         import searcher_libraries as lib
         from types import SimpleNamespace
-        search = '<article><h2><a href="/item/426814">Example 1859</a></h2></article>'
+        search = '<article><h2><a href="/item/426814">Карта Калужской губернии</a></h2></article>'
         with patch.object(lib, '_get', return_value=SimpleNamespace(text=search)), \
              patch('prlib_card.fetch_card', side_effect=lambda url: parse_card(self.raw, url)):
             rows = list(lib._search_prlib('Калужская', 1860, 1865, 1))
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0].year_from, 1864)
         self.assertEqual(rows[0].extra['part'], '2')
+
+    def test_search_filters_foreign_provinces(self):
+        import searcher_libraries as lib
+        from types import SimpleNamespace
+        search = ''.join([
+            '<article><h2><a href="/item/1">Карта Иркутской губернии</a></h2></article>',
+            '<article><h2><a href="/item/2">Карта Киевской губернии</a></h2></article>',
+            '<article><h2><a href="/item/3">Карта Калужской губернии</a></h2></article>',
+        ])
+        with patch.object(lib, '_get', return_value=SimpleNamespace(text=search)), \
+             patch.object(lib, 'PRLIB_FETCH_DETAILS_IN_BULK', False):
+            rows = list(lib._search_prlib('карта Калужская губерния', None, None, 1))
+        self.assertEqual([row.url for row in rows], ['https://prlib.ru/item/3'])
+
+    def test_search_requires_administrative_marker_for_province(self):
+        import searcher_libraries as lib
+        from types import SimpleNamespace
+        search = '<article><h2><a href="/item/4">Карта Калужской области</a></h2></article>'
+        with patch.object(lib, '_get', return_value=SimpleNamespace(text=search)), \
+             patch.object(lib, 'PRLIB_FETCH_DETAILS_IN_BULK', False):
+            rows = list(lib._search_prlib('карта Калужская губерния', None, None, 1))
+        self.assertEqual(rows, [])
+
+    def test_search_keeps_district_word_forms(self):
+        import searcher_libraries as lib
+        from types import SimpleNamespace
+        search = ''.join([
+            '<article><h2><a href="/item/5">Карта Малоярославецкого уезда Калужской губернии</a></h2></article>',
+            '<article><h2><a href="/item/6">Карта Переславль-Залесского уезда Владим. губ.</a></h2></article>',
+        ])
+        with patch.object(lib, '_get', return_value=SimpleNamespace(text=search)), \
+             patch.object(lib, 'PRLIB_FETCH_DETAILS_IN_BULK', False):
+            rows = list(lib._search_prlib('карта Малоярославецкий', None, None, 1))
+        self.assertEqual([row.url for row in rows], ['https://prlib.ru/item/5'])
 
 
 if __name__ == '__main__':

@@ -19,6 +19,7 @@
   all        — все источники (по умолчанию)
 """
 import re
+import hashlib
 import os
 import time
 from dataclasses import dataclass, field
@@ -52,6 +53,11 @@ class LibraryRecord:
 
 def _get(url: str, params: dict | None = None, delay: float = 2.0,
          timeout: float = 25.0) -> requests.Response:
+    if url == "https://prlib.ru/collections/467000/search":
+        if not isinstance(params, dict) or set(params) != {"text", "page"}:
+            raise ValueError("Unexpected PRLIB search parameters")
+        from prlib_access import fetch_page
+        return fetch_page(params["text"], params["page"])
     time.sleep(delay)
     resp = requests.get(url, params=params, headers={"User-Agent": UA}, timeout=timeout)
     resp.raise_for_status()
@@ -92,9 +98,78 @@ def _in_year_range(y_from: int | None, y_to: int | None,
 PRLIB_SEARCH = "https://prlib.ru/collections/467000/search"
 PRLIB_BASE   = "https://prlib.ru"
 
-# Массовый прогон сохраняет выдачу без запроса каждой карточки. Детальные
-# карточки PRLIB требуют отдельного rate-limited review и могут вернуть 403.
-PRLIB_FETCH_DETAILS_IN_BULK = os.getenv("IGIS_BULK_MODE", "1") == "1"
+# PRLIB always uses the reviewed detail adapter. The unrelated GPIB bulk flag
+# must not silently remove bibliographic fields from Presidential Library rows.
+PRLIB_FETCH_DETAILS_IN_BULK = True
+
+PRLIB_QUERY_TERMS = {
+    "карта", "план", "атлас", "съёмка", "съемка", "чертёж", "чертеж",
+    "топографическая",
+}
+
+
+def _prlib_normalize(text: str) -> str:
+    """Нормализует кириллический текст для консервативного title-фильтра."""
+    return re.sub(r"\s+", " ", text.lower().replace("ё", "е").replace("–", "-")
+                  .replace("—", "-").replace("-", " ")).strip()
+
+
+def _prlib_stem(word: str) -> str:
+    """Возвращает устойчивую основу губернского/уездного названия."""
+    word = word.strip("- ")
+    for suffix in ("ской", "ского", "скому", "ским", "ском", "ская", "ское", "ский", "кий", "ь"):
+        if word.endswith(suffix) and len(word) > len(suffix) + 2:
+            return word[:-len(suffix)] + ("" if suffix in ("кий", "ь") else "ск")
+    return word
+
+
+def _prlib_territory_query(query: str) -> tuple[str, list[str]] | None:
+    """Выделяет территориальную часть запроса PRLIB.
+
+    Сервер PRLIB иногда возвращает карточки из других губерний даже при
+    наличии территории в параметре text. Поэтому неизвестный запрос здесь
+    не фильтруется, а все штатные запросы из territories.py получают явное
+    правило ниже.
+    """
+    words = [w for w in re.findall(r"[а-яa-z0-9-]+", _prlib_normalize(query))
+             if w not in PRLIB_QUERY_TERMS and not w.isdigit()]
+    if not words:
+        return None
+
+    # Для губерний/наместничеств и уездов учитываем словоформы в заголовке:
+    # «Калужская губерния» ↔ «Калужской губернии», «Калужского уезда».
+    for marker in ("губерн", "наместнич", "уезд"):
+        for index, word in enumerate(words):
+            if word.startswith(marker) and index:
+                return ("province" if marker != "уезд" else "district",
+                        [_prlib_stem(words[index - 1])])
+
+    # Уезд/город без административного маркера (Мосальск, Медынь и т. п.).
+    # Для составного названия требуем наличие всех частей, чтобы не расширять
+    # «Переславль-Залесский» до несвязанных карточек.
+    stems = [_prlib_stem(word) for word in words if len(word) >= 3]
+    return ("named", stems) if stems else None
+
+
+def _prlib_matches_territory(title: str, query: str) -> bool:
+    """Проверяет связь заголовка PRLIB с территорией запроса.
+
+    Проверяется только видимый заголовок карточки; совпадения по общим словам
+    «карта», «план» и т. п. недостаточно. Это постфильтр выдачи, а не
+    утверждение о полноте каталога.
+    """
+    target = _prlib_territory_query(query)
+    if target is None:
+        return True
+    kind, stems = target
+    title_words = re.findall(r"[а-яa-z0-9]+", _prlib_normalize(title))
+    if kind == "province":
+        return any(word.startswith(stems[0]) for word in title_words) and any(
+            word.startswith(("губерн", "наместнич")) for word in title_words)
+    if kind == "district":
+        return any(word.startswith(stems[0]) for word in title_words) and any(
+            word.startswith("уезд") for word in title_words)
+    return all(any(word.startswith(stem) for word in title_words) for stem in stems)
 
 def _prlib_detail_record(url: str) -> LibraryRecord:
     try:
@@ -115,102 +190,214 @@ def _prlib_summary_record(url: str, title: str,
         url=url,
         library_id="prlib",
         library_name="Президентская библиотека",
+        category="не классифицировано",
+        extra={"review_issues": ["detail_not_fetched", "source_type_requires_review"]},
     )
 
+def _prlib_listing_evidence(item, item_url: str) -> dict:
+    """Preserve listing date candidates; do not infer dates from title or holder."""
+    nodes = item.select(".date, .year, time, [class*='date'], [class*='year']")
+    explicit = [node.get_text(" ", strip=True) for node in nodes]
+    blocks = [node.get_text(" ", strip=True) for node in item.select(".node-content")]
+    raw = explicit if explicit else blocks
+    years = [int(value) for value in raw if re.fullmatch(r"(?:1[5-9]\d{2}|20\d{2})", value)]
+    # Multiple explicit dates and unparsed explicit date formats remain review.
+    unique = set(years)
+    ambiguous = len(unique) > 1 or bool(explicit and any(
+        not re.fullmatch(r"(?:1[5-9]\d{2}|20\d{2})", value) for value in explicit))
+    year = next(iter(unique)) if len(unique) == 1 and not ambiguous else None
+    return {
+        "year_candidate": year,
+        "date_status": "ambiguous" if ambiguous else ("year_candidate" if year else "missing_or_unparsed"),
+        "date_semantics": "bibliographic_listing_year_candidate_not_creation_date",
+        "raw_date_nodes": explicit,
+        "raw_node_content": blocks,
+        "evidence": {"url": item_url, "locator": "search result article; date nodes or standalone year in .node-content",
+                     "sha256": hashlib.sha256(str(item).encode("utf-8")).hexdigest(),
+                     "hash_scope": "parsed article serialized as UTF-8; not original response"},
+    }
+
+
+class PrLibIncompleteSearch(RuntimeError):
+    def __init__(self, coverage):
+        self.coverage = dict(coverage)
+        super().__init__("PRLIB incomplete: " + coverage["stop_reason"])
+
+
+# These describe one query/page, not a site-wide access or integrity condition.
+PRLIB_QUERY_LOCAL_REVIEW_REASONS = frozenset({
+    "repeated_page", "pager_missing", "current_page_mismatch",
+    "invalid_pager_link", "pager_label_mismatch", "next_page_not_linked",
+    "empty_unverified",
+})
+
+
+def prlib_query_needs_review(reason: str) -> bool:
+    """True only for a bounded pagination/result anomaly of one PRLIB query."""
+    return reason in PRLIB_QUERY_LOCAL_REVIEW_REASONS
+
+
 def _search_prlib(query: str, year_from: int | None, year_to: int | None,
-                  max_pages: int) -> Iterator[LibraryRecord]:
-    """
-    Президентская библиотека (prlib.ru) — новый сайт 2025.
-    Поиск: /collections/467000/search?text=<query>&page=<page>
-    Результаты обогащаются полной карточкой; ошибки детали не считаются пустой выдачей.
-    """
-    seen = set()
-    for page in range(1, max_pages + 1):
-        params: dict = {"text": query, "page": page}
-        try:
-            resp = _get(PRLIB_SEARCH, params=params, delay=3.0)
-        except Exception as e:
-            print(f"[ПрБ] Ошибка стр.{page}: {e}")
-            if page == 1:
-                print("[ПрБ] Повтор через 15 сек...")
-                time.sleep(15)
-                try:
-                    resp = _get(PRLIB_SEARCH, params=params, delay=0)
-                except Exception as e2:
-                    print(f"[ПрБ] Повтор не удался: {e2}")
-                    raise  # пробрасываем наверх — run_search.py не считает как «пустой»
-            else:
-                break
-
-        soup = BeautifulSoup(resp.text, "lxml")
-
-        # Новая структура: карточки результатов
-        items = soup.select(
-            "article, .search-item, .collection-item, .result-card, "
-            "[class*='search-result'], [class*='collection-result']"
-        )
-        if not items:
-            # Fallback: любые ссылки ведущие на /item/ или /collections/
-            links = soup.find_all("a", href=re.compile(r"/(item|record|document)/"))
-            if not links:
-                break
-            # Оборачиваем ссылки в псевдо-items
-            for link in links:
-                href = link["href"]
-                item_url = href if href.startswith("http") else f"{PRLIB_BASE}{href}"
-                title = link.get_text(" ", strip=True)
+                  max_pages: int, coverage: dict | None = None,
+                  resume: dict | None = None, on_progress=None) -> Iterator[LibraryRecord]:
+    """Read validated pager indices; reported end never proves corpus completeness."""
+    from urllib.parse import urljoin, urlsplit, parse_qs
+    if isinstance(max_pages, bool) or not isinstance(max_pages, int) or max_pages < 1:
+        raise ValueError("max_pages must be a positive integer")
+    state = coverage if coverage is not None else {}
+    state.clear()
+    state.update(status="running", stop_reason="", pages_received=0,
+                 pages_processed=0, records_yielded=0, requested_page=None,
+                 next_page=0, full_search_complete=False, access_pages=[],
+                 classifier_verdicts=[], for_review=False, max_page=None)
+    resume = resume or {"page": 0, "seen": [], "fingerprints": []}
+    if not isinstance(resume.get("page"), int) or isinstance(resume["page"], bool) or resume["page"] < 0:
+        raise ValueError("Invalid resume page")
+    state["resume"] = {"page": resume["page"], "seen": list(resume.get("seen", [])),
+                       "fingerprints": list(resume.get("fingerprints", []))}
+    seen = set(state["resume"]["seen"])
+    fingerprints = {tuple(x) for x in state["resume"]["fingerprints"]}
+    def incomplete(reason):
+        state.update(status="partial" if state["pages_received"] else "failed", stop_reason=reason,
+                     for_review=prlib_query_needs_review(reason))
+        raise PrLibIncompleteSearch(state)
+    page = resume["page"]
+    try:
+        for _ in range(max_pages):
+            state["requested_page"] = page
+            state["max_page"] = page if state["max_page"] is None else max(state["max_page"], page)
+            state["next_page"] = page
+            try:
+                resp = _get(PRLIB_SEARCH, params={"text": query, "page": page}, delay=3.0)
+            except Exception as exc:
+                reason = getattr(exc, "reason", "request_error")
+                if hasattr(exc, "report"):
+                    state["access_pages"].append(exc.report)
+                state.update(status="partial" if state["pages_received"] else "failed", stop_reason=reason)
+                raise
+            if hasattr(resp, "access_report"):
+                state["access_pages"].append(resp.access_report)
+            state["pages_received"] += 1
+            classification = getattr(resp, "access_report", {}).get("classification", {})
+            if classification:
+                state["classifier_verdicts"].append({
+                    "page": page,
+                    "verdict": classification.get("verdict"),
+                    "reason": classification.get("reason"),
+                })
+            if classification.get("verdict") == "ambiguous_empty":
+                state.update(status="unverified", stop_reason=classification.get("reason") or "empty_unverified",
+                             pages_processed=state["pages_processed"] + 1, next_page=None, for_review=True)
+                return
+            if (classification.get("verdict") == "reported_end"
+                    and classification.get("evidence", {}).get("items") == 0):
+                state.update(status="reported_end", stop_reason="pager_reported_end",
+                             pages_processed=state["pages_processed"] + 1, next_page=None)
+                return
+            soup = BeautifulSoup(resp.text, "lxml")
+            scope = soup.select_one("main") or soup
+            pager = scope.select_one("ul.pagination")
+            next_page = None
+            if pager:
+                current = pager.select(".active")
+                if len(current) != 1 or current[0].get_text(" ", strip=True) != str(page + 1):
+                    incomplete("current_page_mismatch")
+                indices = {page}
+                for link in pager.select("a[href]"):
+                    u = urlsplit(urljoin(PRLIB_BASE, link["href"]))
+                    params = parse_qs(u.query, keep_blank_values=True)
+                    raw = params.get("page", ["0"])
+                    if (u.scheme != "https" or u.netloc not in ("prlib.ru", "www.prlib.ru")
+                        or u.path != "/collections/467000/search" or u.fragment
+                        or params.get("text") != [query] or len(raw) != 1
+                        or not raw[0].isdigit() or set(params) - {"text", "page"}):
+                        incomplete("invalid_pager_link")
+                    index = int(raw[0])
+                    label = link.get_text(" ", strip=True)
+                    if label.isdigit() and int(label) != index + 1:
+                        incomplete("pager_label_mismatch")
+                    indices.add(index)
+                if max(indices) > page:
+                    if page + 1 not in indices:
+                        incomplete("next_page_not_linked")
+                    next_page = page + 1
+            items = scope.select("article, .search-item, .collection-item, .result-card, [class*='search-result'], [class*='collection-result']")
+            if not items:
+                # Retain legacy link-only fixtures, but their coverage remains unknown.
+                items = scope.select("a[href*='/item/']")
+            parsed = []
+            for item in items:
+                link = item if item.name == "a" else item.select_one("h2 a[href], h3 a[href], h4 a[href]")
+                link = link or item.find("a", href=True)
+                if not link:
+                    incomplete("result_link_missing")
+                url = urljoin(PRLIB_BASE, link.get("href", ""))
+                if not re.fullmatch(r"https://(?:www\.)?prlib\.ru/item/\d+/?", url):
+                    incomplete("invalid_item_url")
+                title_node = item.select_one("h2, h3, h4, .title") if item.name != "a" else None
+                title = (title_node or link).get_text(" ", strip=True)
                 if not title:
+                    incomplete("result_title_missing")
+                parsed.append((item, url, title))
+            if not parsed:
+                incomplete("empty_unverified")
+            fingerprint = tuple(sorted({urlsplit(url).path.rstrip("/") for _, url, _ in parsed}))
+            if fingerprint in fingerprints:
+                incomplete("repeated_page")
+            fingerprints.add(fingerprint)
+            for item, url, title in parsed:
+                ident = urlsplit(url).path.rstrip("/")
+                if ident in seen:
                     continue
-                if item_url in seen:
+                seen.add(ident)
+                if not _prlib_matches_territory(title, query):
                     continue
-                seen.add(item_url)
-                rec = (_prlib_detail_record(item_url)
-                       if PRLIB_FETCH_DETAILS_IN_BULK
-                       else _prlib_summary_record(item_url, title))
+                listing = _prlib_listing_evidence(item, url)
+                year = listing["year_candidate"]
+                try:
+                    rec = (_prlib_detail_record(url) if PRLIB_FETCH_DETAILS_IN_BULK
+                           else _prlib_summary_record(url, title, year, year))
+                except Exception as exc:
+                    state.update(status="partial", stop_reason=getattr(exc, "reason", "detail_error"))
+                    if hasattr(exc, "report"):
+                        state.setdefault("detail_access_failures", []).append(exc.report)
+                    raise
+                rec.extra = dict(rec.extra)
+                rec.extra["search_listing"] = listing
+                # Shared state finishes when the iterator is exhausted; consumers
+                # needing a durable checkpoint must persist coverage separately.
+                rec.extra["search_coverage"] = state
+                if listing["date_status"] != "year_candidate":
+                    rec.extra["review_issues"] = list(rec.extra.get("review_issues", [])) + ["search_listing_date_" + listing["date_status"]]
                 if _in_year_range(rec.year_from, rec.year_to, year_from, year_to):
+                    state["records_yielded"] += 1
                     yield rec
-            break
-
-        found_on_page = False
-        for item in items:
-            link = (item.find("a", href=re.compile(r"/(item|record|document|collections)/"))
-                    or item.find("a", href=True))
-            if not link:
-                continue
-            href = link["href"]
-            if not href or href == "#":
-                continue
-            item_url = href if href.startswith("http") else f"{PRLIB_BASE}{href}"
-
-            title_el = item.select_one(
-                "h2, h3, h4, .title, [class*='title'], [class*='name']"
-            )
-            date_el = item.select_one(
-                ".date, .year, time, [class*='date'], [class*='year']"
-            )
-
-            title = title_el.get_text(" ", strip=True) if title_el else link.get_text(" ", strip=True)
-            date_raw = date_el.get_text(" ", strip=True) if date_el else ""
-            y_from, y_to = _parse_years(date_raw or title)
-
-            if not title:
-                continue
-
-            found_on_page = True
-            if item_url in seen:
-                continue
-            seen.add(item_url)
-            # Only item links belong to the detail adapter; no collection-page guesses.
-            if not re.search(r'/item/\d+/?$', item_url):
-                continue
-            rec = (_prlib_detail_record(item_url)
-                   if PRLIB_FETCH_DETAILS_IN_BULK
-                   else _prlib_summary_record(item_url, title, y_from, y_to))
-            if _in_year_range(rec.year_from, rec.year_to, year_from, year_to):
-                yield rec
-
-        if not found_on_page:
-            break
+            state["pages_processed"] += 1
+            state["next_page"] = next_page
+            if not pager:
+                if (classification.get("verdict") == "reported_end"
+                        and classification.get("evidence", {}).get("items", 0) > 0):
+                    state.update(status="reported_end", stop_reason="pager_reported_end",
+                                 pages_processed=state["pages_processed"] + 1, next_page=None)
+                    return
+                state.update(status="unverified", stop_reason="pager_missing", for_review=True)
+                return
+            if next_page is None:
+                state.update(status="reported_end", stop_reason="pager_reported_end")
+                return
+            state["resume"] = {"page": next_page, "seen": sorted(seen),
+                               "fingerprints": [list(x) for x in sorted(fingerprints)]}
+            if on_progress:
+                on_progress(state)
+            page = next_page
+        incomplete("page_limit")
+    except GeneratorExit:
+        state.update(status="interrupted", stop_reason="consumer_closed")
+        raise
+    except Exception:
+        if state["status"] == "running":
+            state.update(status="partial" if state["pages_received"] else "failed", stop_reason="processing_error")
+        raise
 
 
 # ── Руниверс (runivers.ru) ───────────────────────────────────────────────────
@@ -1401,3 +1588,4 @@ def search(query: str, year_from: int | None = None, year_to: int | None = None,
         except Exception as e:
             print(f"[libraries:{lib_id}] Необработанная ошибка: {e}")
             raise  # пробрасываем в run_search.py — там не считается как «пустой»
+

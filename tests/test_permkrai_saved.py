@@ -28,6 +28,11 @@ class CardTests(unittest.TestCase):
         self.assertIn('15 февраля 1911',r.bibliography)
         self.assertEqual(r.url_viewer, URL+'?fragment=page-1')
         self.assertEqual(r.url_download, URL+'/pdfbook/download/Karta_Permskoy_gubernii._1909.pdf')
+        self.assertTrue(r.card_text)
+        self.assertIn('Кривощёков Иван Яковлевич', r.card_text)
+        self.assertEqual(r.card_html, HTML)
+        self.assertEqual(r.identifiers_raw['Идентификатор'], 'НП 4180')
+        self.assertEqual(r.dates_raw['Дата публикации'], '1909')
 
     def test_search_card_integration(self):
         with patch.object(m, '_get', return_value=SimpleNamespace(text=HTML)) as get:

@@ -129,7 +129,7 @@ def build_record(num, fund_id, fund_title, opis_num, opis_title,
         "size_cm": f"{sz.group(1)}x{sz.group(2)}" if sz else "",
         "technique": "; ".join(tech), "territory": "; ".join(terr),
         "is_map": "true" if is_map else "false",
-        "url": f"{BASE}/search/{RGVIA}/{fund_id}/{opis_id}/{case_id}",
+        "url": f"{BASE}/search/{RGVIA}/{fund_id}/{opis_id}/{case_id}/",
         "needs_human": "true" if reasons else "false",
         "needs_human_reason": "; ".join(reasons),
     }
