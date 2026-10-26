@@ -194,6 +194,11 @@ def main():
     parser.add_argument("--limit", type=int, default=0, help="ограничить число записей (0 = все)")
     parser.add_argument("--skip-relations", action="store_true",
                          help="не резолвить relation-справочники (быстрее; relation -> id вместо title)")
+    parser.add_argument("--start", type=str, default="",
+                         help="ISO-дата/время начала окна created_time (включительно), напр. 2026-10-17. "
+                              "Для ручного дробления плотных периодов на устойчивые к обрыву куски.")
+    parser.add_argument("--end", type=str, default="",
+                         help="ISO-дата/время конца окна created_time (исключительно).")
     args = parser.parse_args()
 
     fix_stdout()
@@ -216,8 +221,9 @@ def main():
             relation_lookup[field] = fetch_title_map(client, ds_id(spec["data_source"]), logger, field)
     relation_id_to_title = {field: {v: k for k, v in m.items()} for field, m in relation_lookup.items()}
 
-    earliest = get_bound(client, catalog_id, "ascending")
-    latest = get_bound(client, catalog_id, "descending") + timedelta(days=1)
+    earliest = parse_ts(args.start) if args.start else get_bound(client, catalog_id, "ascending")
+    latest = (parse_ts(args.end) if args.end
+              else get_bound(client, catalog_id, "descending") + timedelta(days=1))
     logger.info(f"диапазон created_time: {earliest} .. {latest}")
 
     out_csv = dated_path("notion_catalog", "csv", out=OUT_DIR)
