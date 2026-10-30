@@ -39,6 +39,7 @@ data_source_id). Пишет через официальный notion_client SDK 
 import argparse
 import csv
 import json
+import shutil
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -275,6 +276,21 @@ def main():
             if args.limit and total >= args.limit:
                 break
     logger.info(f"выгружено {total} (дублей по границам окон: {dupes})")
+
+    # Стабильная копия для повторного обращения -- не искать среди файлов с меняющимся
+    # именем в output/, и не на Яндекс.Диске (решение 30.10.2026 после инцидента с
+    # зависшей облачной заглушкой -- Dropbox этой проблемы не создавал). Папка -- рядом
+    # с материалами будущей статьи о представленности, где эта выгрузка и нужна.
+    stable_dir = Path(
+        r"D:\Dropbox\Project\Pooh\19 Каталогизация исторических источников России"
+        r"\Представленность исторических картографических источников в федеральных"
+        r" и региональных архивах и библиотеках\данные"
+    )
+    stable_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(out_csv, stable_dir / "текущий.csv")
+    shutil.copyfile(out_baseline, stable_dir / "текущий_baseline.jsonl")
+    shutil.copyfile(out_rel, stable_dir / "текущий_relations.json")
+    logger.info(f"стабильная копия обновлена: {stable_dir}")
 
     print(json.dumps({"rows": total, "columns": len(fields) + 2,
                        "csv": str(out_csv), "baseline": str(out_baseline),
