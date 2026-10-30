@@ -154,6 +154,11 @@ def fetch_window(client, catalog_id, start: datetime, end: datetime, logger, dep
                     f"окно {start}..{end} не бисектится дальше, а записей всё равно >= {CAP} "
                     "с одинаковым created_time -- нужен ручной разбор (другой фильтр-ось)")
             logger.info(f"{'  ' * depth}окно {start}..{end}: потолок {CAP}, бисектим на {mid}")
+            # buf (до CAP полных Notion-объектов) иначе остаётся живым в приостановленном
+            # фрейме на всё время работы дочерних yield from -- на глубокой рекурсии
+            # (плотный кластер created_time) это копится по уровню и съедает всю RAM
+            # (воспроизведено 30.10.2026: 3 падения подряд на одном окне ~18.10).
+            buf = None
             yield from fetch_window(client, catalog_id, start, mid, logger, depth + 1)
             yield from fetch_window(client, catalog_id, mid, end, logger, depth + 1)
             return
