@@ -75,14 +75,30 @@ HEADERS = {"Authorization": f"Bearer {TOKEN}", "Notion-Version": "2022-06-28",
            "Content-Type": "application/json"}
 
 
-def api(method: str, url: str, data: dict | None = None) -> dict:
-    req = urllib.request.Request(url, data=json.dumps(data).encode() if data else None,
-                                 headers=HEADERS, method=method)
-    try:
-        with urllib.request.urlopen(req) as r:
-            return json.load(r)
-    except urllib.error.HTTPError as e:
-        raise RuntimeError(f"HTTP {e.code}: {e.read().decode()}") from e
+def api(method: str, url: str, data: dict | None = None, tries: int = 5) -> dict:
+    """Запрос к Notion с повтором на временных отказах.
+
+    ⚠️ Повторы добавлены 11.11.2026: дедуп-запрос фильтрует базу из 112 202 записей по
+    «Ссылке на онлайн-архив», и Notion отвечает на него **HTTP 504** — прогон падал на
+    первой же записи. Повторяем 429 и 5xx с нарастающим отступом; 4xx (кроме 429) —
+    это ошибка в данных, её повторять бессмысленно, сразу наружу.
+    """
+    last: Exception | None = None
+    for attempt in range(tries):
+        req = urllib.request.Request(
+            url, data=json.dumps(data).encode() if data else None,
+            headers=HEADERS, method=method)
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+                return json.load(r)
+        except urllib.error.HTTPError as e:
+            if e.code != 429 and e.code < 500:
+                raise RuntimeError(f"HTTP {e.code}: {e.read().decode()}") from e
+            last = e
+        except (urllib.error.URLError, TimeoutError) as e:
+            last = e
+        time.sleep(2 * (attempt + 1))
+    raise RuntimeError(f"Notion не ответил за {tries} попыток: {last}")
 
 
 def chunks(s: str, n: int = 2000) -> list[dict]:
@@ -133,6 +149,50 @@ def load_relations(review_json: Path) -> dict[str, list[dict]]:
             if url and rels:
                 out[url] = rels
     return out
+
+
+def load_hints(review_json: Path) -> dict[str, list[str]]:
+    """export_review.json → url -> явные строки территории от сборщика пакета.
+
+    Введено 11.11.2026. Повод: у ГАСО-Урал территория в заголовке дела не названа у 94 %
+    записей, а уезд напечатан в НАЗВАНИИ ФОНДА. Решение пользователя — заполнять по
+    фондообразователю, поэтому сборщик пакета передаёт сюда готовые имена территорий,
+    а мост отдаёт их в `territory_resolve.resolve(hints=...)`, который их матчит по стему.
+    """
+    out: dict[str, list[str]] = {}
+    if review_json.exists():
+        data = json.loads(review_json.read_text(encoding="utf-8-sig"))
+        for rec in data.get("records", []):
+            url, hints = rec.get("url", ""), rec.get("territory_hints") or []
+            if url and hints:
+                out[url] = [str(h) for h in hints]
+    return out
+
+
+#: Notion-тип свойства → внутреннее имя типа, которым пользуется to_prop
+_NOTION_TO_INTERNAL = {"title": "title", "rich_text": "text", "number": "number",
+                       "url": "url", "select": "select"}
+
+
+def merge_live_schema() -> int:
+    """Добрать типы колонок из ЖИВОЙ схемы базы в PROPS.
+
+    ⚠️ Зачем. `notion_export.PROPERTIES` — статический снимок схемы, и свойства,
+    добавленные в базу позже (признаки происхождения значения: «Масштаб: источник
+    значения», «Год: источник значения», «Территория: источник значения»,
+    «Административный уровень: источник значения»), в нём отсутствуют. Без этого
+    `to_prop` возвращает None и колонка ТИХО пропадает из заливки — то есть провенанс,
+    ради которого он и заводился, не попал бы в базу. Статический снимок остаётся
+    главным (не перезаписываем), живая схема только добавляет неизвестное.
+    """
+    db = api("GET", f"https://api.notion.com/v1/databases/{DB_ID}")
+    added = 0
+    for name, meta in (db.get("properties") or {}).items():
+        internal = _NOTION_TO_INTERNAL.get(meta.get("type"))
+        if internal and name not in PROPS:
+            PROPS[name] = {"type": internal}
+            added += 1
+    return added
 
 
 def archives_map() -> dict[str, str]:
@@ -234,6 +294,10 @@ def main() -> None:
                    for x in io.open(d / "review_records.jsonl", encoding="utf-8-sig") if x.strip()} \
         if (d / "review_records.jsonl").exists() else set()
     relations = load_relations(d / "export_review.json")
+    hints_by_url = load_hints(d / "export_review.json")
+    n_new = merge_live_schema()
+    if n_new:
+        print(f"схема: добрано из живой базы колонок — {n_new}")
     arch_map = archives_map() if relations else {}
     unresolved: list[str] = []
     # индексы справочников территорий/регионов для авто-простановки (общее правило)
@@ -251,7 +315,8 @@ def main() -> None:
         props.update(relation_props(relations.get(url, []), arch_map, unresolved))
         # Авто-простановка территории/региона (общее правило, только если ещё не заданы)
         full_title = r.get("Название источника", "")
-        terr_ids, reg_ids = tr.resolve(full_title, url, terr_stem_index, terr_gub, reg_index)
+        terr_ids, reg_ids = tr.resolve(full_title, url, terr_stem_index, terr_gub,
+                                       reg_index, hints=hints_by_url.get(url))
         if terr_ids and "Охватываемая территория" not in props:
             props["Охватываемая территория"] = {"relation": [{"id": i} for i in terr_ids]}
         if reg_ids and "Современные регионы" not in props:

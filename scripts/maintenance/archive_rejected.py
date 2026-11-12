@@ -59,10 +59,20 @@ def main() -> None:
         print("Нет NOTION_TOKEN")
         sys.exit(1)
 
-    res = api("POST", f"https://api.notion.com/v1/databases/{DB_ID}/query",
-              {"filter": {"property": "Статус приёмки", "select": {"equals": "отклонено"}},
-               "page_size": 100})
-    rows = res.get("results", [])
+    rows = []
+    cursor = None
+    while True:
+        body = {"filter": {"property": "Статус приёмки", "select": {"equals": "отклонено"}},
+                "page_size": 100}
+        if cursor:
+            body["start_cursor"] = cursor
+        res = api("POST", f"https://api.notion.com/v1/databases/{DB_ID}/query", body)
+        rows += res.get("results", [])
+        if not res.get("has_more"):
+            break
+        cursor = res.get("next_cursor")
+        time.sleep(0.34)
+    print(f"Всего записей со статусом «отклонено»: {len(rows)}")
     archived = errors = 0
     for p in rows:
         pr = p["properties"]
