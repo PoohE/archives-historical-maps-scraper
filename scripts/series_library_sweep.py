@@ -164,6 +164,15 @@ SERIES_QUERIES["знаки и инструкции"] += [
     "условные знаки для планов и карт по ведомству министерства земледелия",
 ]
 
+# --- расширение 12.11.2026: серии 18–24, ландкарты 1720–40-х, 12 карточек справочника
+# и 26 статистико-экономических серий Г1–Г26. Обоснование и состав — series_queries_2026_11_12.py
+from series_queries_2026_11_12 import EXT  # noqa: E402
+
+for _k, _v in EXT.items():
+    SERIES_QUERIES.setdefault(_k, [])
+    SERIES_QUERIES[_k] += [x for x in _v if x not in SERIES_QUERIES[_k]]
+
+
 RECORD_RE = {
     "search.rsl.ru": re.compile(r"search\.rsl\.ru/ru/record/(\d+)"),
     "rusneb.ru": re.compile(r"rusneb\.ru/catalog/([0-9A-Za-z_]+)"),
