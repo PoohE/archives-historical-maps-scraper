@@ -38,8 +38,12 @@ WORK = DIR / "work.jsonl"
 OUT = DIR / "harvested.jsonl"
 
 UA = {"User-Agent": "Mozilla/5.0 (research; IGRAS RNF 26-17-00347; contact down.pooh@gmail.com)"}
-DELAY = {"search.rsl.ru": 1.2, "www.prlib.ru": 2.0, "kp.rusneb.ru": 1.5}
-SKIP_HOLDERS = {"НЭБ", "РГО"}          # 403 и недоступен
+DELAY = {"search.rsl.ru": 1.2, "www.prlib.ru": 2.0, "kp.rusneb.ru": 1.5,
+         "rusneb.ru": 4.0, "elib.rgo.ru": 2.5}
+SKIP_HOLDERS: set[str] = set()         # 13.11.2026: маршрут открылся (split tunneling),
+# прямой запрос к rusneb.ru и elib.rgo.ru отдаёт HTTP 200 — проверено на карточках
+# 000202_000006_1276940 (43 756 байт) и handle РГО (17 996 байт). Платный scrape.do
+# для НЭБ больше не нужен. Прежде здесь было {"НЭБ", "РГО"} — 403 и лежащий хост.
 DEAD_AFTER = 3
 
 _last: dict[str, float] = {}
@@ -62,6 +66,13 @@ def route(row: dict) -> str | None:
     if holder == "ПБ":
         return url.replace("https://prlib.ru/", "https://www.prlib.ru/")
     if holder == "КП":
+        return url
+    # 13.11.2026: маршрут к НЭБ и РГО открылся (оба отдают 200 прямым запросом),
+    # поэтому у них появились маршруты — прежде route() возвращал None и карточки
+    # молча уходили в «пропущено по недоступности».
+    if holder == "НЭБ":
+        return url
+    if holder == "РГО":
         return url
     return None
 
@@ -117,6 +128,13 @@ def main() -> None:
     fix_stdout()
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument(
+        "--retry-unavailable",
+        action="store_true",
+        help="перезайти на карточки, помеченные «хост недоступен»: 13.11.2026 маршрут "
+             "открылся и rusneb.ru с elib.rgo.ru отвечают 200 — прежняя пометка больше "
+             "не отражает факт",
+    )
     args = ap.parse_args()
 
     rows = [json.loads(ln) for ln in WORK.open(encoding="utf-8")]
@@ -124,9 +142,18 @@ def main() -> None:
     if OUT.exists():
         for ln in OUT.open(encoding="utf-8"):
             try:
-                done.add(json.loads(ln)["key"])
-            except (json.JSONDecodeError, KeyError):
+                rec = json.loads(ln)
+            except json.JSONDecodeError:
                 continue
+            if "key" not in rec:
+                continue
+            st = str(rec.get("status", ""))
+            # 14.11.2026: под флагом перезаходим и на «не ответил» — у НЭБ прямым
+            # маршрутом 424 таких из 493 при 69 успешных, то есть это троттлинг хоста,
+            # а не отсутствие карточки; лечится увеличенной паузой, а не отказом.
+            if args.retry_unavailable and ("недоступ" in st or st == "не ответил"):
+                continue
+            done.add(rec["key"])
     todo = [r for r in rows if r["key"] not in done]
     if args.limit:
         todo = todo[: args.limit]
