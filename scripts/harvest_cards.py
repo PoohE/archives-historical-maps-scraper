@@ -1,21 +1,49 @@
 """Добор карточек: полное название, масштаб, шифр хранения, выходные данные.
 
-Вход  — output/work_2026-11-08/work.jsonl (3099 карточек после дедупа и отсева тех,
-        что уже в каталоге).
-Выход — harvested.jsonl, построчно, с возобновлением по ключу.
+Вход  — по умолчанию output/work_2026-11-08/work.jsonl (список, замороженный 08.11.2026);
+        для текущего улова — `--queue output/harvest_queue_<ДАТА>/queue.jsonl`, который
+        собирает scripts/build_harvest_queue.py.
+Выход — harvested.jsonl рядом со входом, построчно, с возобновлением по ключу.
 
-Маршруты и вежливость:
-  РГБ  search.rsl.ru/ru/record/...  — robots разрешает /ru/record, пауза 1,2 с
-  ПБ   www.prlib.ru/item/N          — robots разрешает /item/, Crawl-delay 2
-  КП   kp.rusneb.ru                 — пробуем, пауза 1,5 с
-  НЭБ  rusneb.ru                    — 403 на программные запросы, НЕ ходим
-  РГО  elib.rgo.ru                  — сайт не отвечает, НЕ ходим (вернуться, когда поднимется)
+Маршруты и вежливость (сверено пробой 16.11.2026 — один запрос на площадку):
+  РГБ   search.rsl.ru/ru/record/...     — robots разрешает /ru/record, пауза 1,2 с
+  ПБ    www.prlib.ru/item/N             — robots разрешает /item/, Crawl-delay 2
+  КП    kp.rusneb.ru                    — пауза 1,5 с
+  НЭБ   rusneb.ru                       — 200 прямым запросом с 13.11, пауза 4 с
+  РГО   elib.rgo.ru                     — 200, пауза 2,5 с
+  ГАЯО  af.yar-archives.ru/archiveN/... — 200, заголовок и шифр Ф/Оп/Д прямо в <title>.
+                                          ⚠️ капча по квоте сессии (~60—70 обращений на
+                                          PHPSESSID, память reference_gayo-rate-limit-captcha):
+                                          гонять порциями, пауза 3 с
+  ГПИБ  elib.shpl.ru/ru/nodes/N         — 200; h1 даёт только последний уровень («№ 158,
+                                          10 июня»), полное название собирается из цепочки
+                                          родителей — иначе заголовок бессмысленный
+  Пермь lib.permkrai.ru/node/N          — 200, название в JSON-LD schema.org
+  РНБ-В vivaldi.nlr.ru/<id>/details     — 200, но отдаёт ТОЛЬКО заглавие; полное
+                                          библиографическое описание подгружается отдельно
+  BnF   catalogue.bnf.fr/ark:/...        — HTML из нашей сети не открывается, зато работает
+                                          SRU API: UNIMARC с названием, годом, cote (930$a)
+                                          и авторами. Ходим в API, не в страницу
+
+НЕ ходим (BLOCKED, причина пишется в статус записи — чтобы «пропущено» не было молчаливым):
+  РГИА  fgurgia.ru      — robots: `User-agent: anthropic-ai → Disallow: /` (строка 678,
+                          сверено 16.11.2026). Тот же случай, что ГАКО: не обходим,
+                          только официальный запрос. РЕШЕНИЕ ВЛАДЕЛЬЦА.
+  РНБ   primo.nlr.ru    — robots: Disallow: / для всех агентов
+  Gallica, LoC          — Cloudflare 403 и на страницу, и на OAI/JSON API
+  Rumsey                — анти-бот «Verify Access» (память feedback_rumsey-iiif-measure-scale:
+                          IIIF читается из Chrome, скриптом — нет)
+  ГАПК  archive.perm.ru — карточка за авторизацией, фондовый обход только видимым Chrome
+  Госкаталог            — SPA, карточки нет в HTML (нужен muzfo-rest API), и их всего 67
+  РГАДА rgada.info      — ключ улова = номер ФОНДА, а не дела (дефект RECORD_RE в
+                          series_library_sweep.py): добирать нечего, нужен обходчик описи
 
 Хост, трижды подряд не ответивший, отключается до конца прогона — иначе таймауты
 съедают всё время (на первом заходе 25 строк за 9 минут из-за лежащего РГО).
 
-  python harvest_cards.py            # прогон с возобновлением
-  python harvest_cards.py --limit 20 # проба
+  python harvest_cards.py                                   # старый список, с возобновлением
+  python harvest_cards.py --queue output/harvest_queue_20261116/queue.jsonl --limit 20
+  python harvest_cards.py --queue ... --hosts elib.shpl.ru   # одна площадка
 """
 
 import argparse
@@ -25,6 +53,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from urllib.parse import quote
 from html import unescape
 from pathlib import Path
 
@@ -39,7 +68,31 @@ OUT = DIR / "harvested.jsonl"
 
 UA = {"User-Agent": "Mozilla/5.0 (research; IGRAS RNF 26-17-00347; contact down.pooh@gmail.com)"}
 DELAY = {"search.rsl.ru": 1.2, "www.prlib.ru": 2.0, "kp.rusneb.ru": 1.5,
-         "rusneb.ru": 4.0, "elib.rgo.ru": 2.5}
+         "rusneb.ru": 4.0, "elib.rgo.ru": 2.5,
+         # 16.11.2026, новые площадки. ГАЯО — 3 с: портал режет сессию капчей по квоте
+         # обращений, медленнее ходить дешевле, чем ловить капчу на 60-й записи.
+         "af.yar-archives.ru": 3.0, "yar-archives.ru": 3.0, "elib.shpl.ru": 1.5,
+         "lib.permkrai.ru": 1.5, "vivaldi.nlr.ru": 1.5, "catalogue.bnf.fr": 1.5}
+
+# Площадки, куда НЕ ходим, и причина — она попадает в статус записи, чтобы отказ был
+# виден в журнале, а не выглядел как «не ответил». Сверено пробой 16.11.2026.
+BLOCKED = {
+    "fgurgia.ru": "robots запрещает anthropic-ai (Disallow: /) — только официальный запрос",
+    "primo.nlr.ru": "robots: Disallow: / для всех агентов",
+    "gallica.bnf.fr": "Cloudflare 403 (и страница, и OAI) — нужен scrape.do или Chrome",
+    "loc.gov": "Cloudflare 403 (и страница, и ?fo=json) — нужен scrape.do",
+    "www.loc.gov": "Cloudflare 403 (и страница, и ?fo=json) — нужен scrape.do",
+    "davidrumsey.com": "анти-бот «Verify Access» — только Chrome/IIIF",
+    "www.davidrumsey.com": "анти-бот «Verify Access» — только Chrome/IIIF",
+    "archive.perm.ru": "карточка за авторизацией; обход только видимым Chrome",
+    "www.archive.perm.ru": "карточка за авторизацией; обход только видимым Chrome",
+    "goskatalog.ru": "SPA: карточки нет в HTML, нужен muzfo-rest API",
+    "web.goskatalog.ru": "SPA: карточки нет в HTML, нужен muzfo-rest API",
+    "rgada.info": "ключ улова — номер фонда, не дела (дефект RECORD_RE): нужен обходчик описи",
+}
+
+BNF_SRU = ("https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve"
+           "&maximumRecords=1&recordSchema=unimarcxchange&query=")
 SKIP_HOLDERS: set[str] = set()         # 13.11.2026: маршрут открылся (split tunneling),
 # прямой запрос к rusneb.ru и elib.rgo.ru отдаёт HTTP 200 — проверено на карточках
 # 000202_000006_1276940 (43 756 байт) и handle РГО (17 996 байт). Платный scrape.do
@@ -52,27 +105,68 @@ _fails: dict[str, int] = {}
 SC = re.compile(r"1\s*[:：]\s*(\d[\d\s\u00a0]{2,12})")
 SHELF = re.compile(r"((?:FB|KGR|OMF|IZO|MK|ZV|NTO)\s+[^\s][\w\s/\-.№]{2,34}?)"
                    r"\s+(?:Читать|Заказать|Marc21)")
+NAV_SHPL = ("Электронная библиотека ГПИБ", "Главная", "Книжные издания",
+            "Периодические издания", "Газеты", "Журналы", "Картографические издания")
 TAILS = (" - Search RSL", " | Президентская библиотека имени Б.Н. Ельцина",
          " | Президентская библиотека", " имени Б.Н. Ельцина")
 
 
+# Признаки страницы-заслона вместо карточки. Без этой проверки прогон пишет «добрано»
+# по капче: у ГАЯО квота обращений на сессию (~60—70), и 61-я страница выглядит как
+# обычный ответ 200 (память reference_gayo-rate-limit-captcha, разбор 16.11.2026).
+WALL = ("введите код с картинки", "подтвердите, что вы не робот", "recaptcha",
+        "verify access", "attention required", "just a moment", "cf-browser-verification",
+        "авторизация")
+
+
+def is_wall(body: str) -> bool:
+    head = body[:4000].lower()
+    return any(w in head for w in WALL)
+
+
+def blocked_reason(url: str) -> str | None:
+    """Причина отказа по площадке — или None, если площадка открыта."""
+    host = url.split("/")[2].lower() if "//" in url else ""
+    for h, why in BLOCKED.items():
+        if host == h or host.endswith("." + h):
+            return why
+    return None
+
+
 def route(row: dict) -> str | None:
+    """Адрес, по которому снимается карточка: сама страница либо API площадки.
+
+    Решение — по ХОСТУ ссылки, а не по метке держателя: метки в журналах разных прогонов
+    расходятся («ПБ» в списке от 08.11 против «ПрБ» в очереди от 16.11), и привязка к ним
+    молча теряла целые площадки.
+    """
     holder, url = row["key"].split(":", 1)[0], row["url"]
-    if holder in SKIP_HOLDERS:
+    if holder in SKIP_HOLDERS or blocked_reason(url):
         return None
-    if holder == "РГБ":
+    host = url.split("/")[2].lower() if "//" in url else ""
+
+    if "search.rsl.ru" in host or "rusneb.ru" in host:
         m = re.search(r"000199_000009_(\d{9})", url) or re.search(r"record/0?1?(\d{9})", url)
-        return f"https://search.rsl.ru/ru/record/01{m.group(1)}" if m else None
-    if holder == "ПБ":
+        if m:                                    # карточка РГБ в любой из трёх форм ссылки
+            return f"https://search.rsl.ru/ru/record/01{m.group(1)}"
+        return url                               # прочие записи НЭБ — прямым запросом
+    if "prlib.ru" in host:
         return url.replace("https://prlib.ru/", "https://www.prlib.ru/")
+    if "kp.rusneb.ru" in host or "elib.rgo.ru" in host:
+        return url
+    if "yar-archives.ru" in host:                # ГАЯО: карточка живёт на поддомене af.
+        return re.sub(r"https?://(?:af\.)?yar-archives\.ru",
+                      "https://af.yar-archives.ru", url)
+    if "elib.shpl.ru" in host:
+        return url
+    if "lib.permkrai.ru" in host:
+        return url.split("?")[0]                 # ?fragment=page-1 — просмотрщик, не карточка
+    if "vivaldi.nlr.ru" in host:
+        return url
+    if "catalogue.bnf.fr" in host:
+        m = re.search(r"(ark:/\d+/cb\d+\w?)", url)
+        return BNF_SRU + quote(f'bib.persistentid all "{m.group(1)}"') if m else None
     if holder == "КП":
-        return url
-    # 13.11.2026: маршрут к НЭБ и РГО открылся (оба отдают 200 прямым запросом),
-    # поэтому у них появились маршруты — прежде route() возвращал None и карточки
-    # молча уходили в «пропущено по недоступности».
-    if holder == "НЭБ":
-        return url
-    if holder == "РГО":
         return url
     return None
 
@@ -96,6 +190,181 @@ def fetch(url: str) -> str | None:
         if _fails[host] == DEAD_AFTER:
             print(f"  !! {host} молчит {DEAD_AFTER} раза — отключаю до конца прогона", flush=True)
         return None
+
+
+def flat(html: str) -> str:
+    """Текст страницы без разметки и скриптов — одной строкой."""
+    no_js = re.sub(r"<script.*?</script>", " ", html, flags=re.S)
+    return re.sub(r"\s+", " ", unescape(re.sub(r"<[^>]+>", " ", no_js)))
+
+
+def find_scale(text: str) -> dict:
+    """Масштаб и его контекст — общий приём для всех площадок."""
+    w = re.search(r"[Мм]асштаб[^.;]{0,160}", text)
+    s = SC.search(w.group(0)) if w else None
+    if s:
+        return {"scale": int(re.sub(r"\D", "", s.group(1))), "scale_ctx": w.group(0).strip()[:120]}
+    return {}
+
+
+def parse_yar(html: str) -> dict:
+    """ГАЯО: в <title> лежат и заголовок дела, и шифр — «… — Ф.560 Оп.1Т-2 Д.760 / ГБУ ЯО …»."""
+    out: dict = {}
+    m = re.search(r"<title>(.*?)</title>", html, re.S | re.I)
+    if not m:
+        return out
+    t = unescape(re.sub(r"\s+", " ", m.group(1))).strip()
+    t = t.split(" / ")[0].strip()                      # хвост с названием архива
+    shelf = re.search(r"(Ф\.\s*[^\s]+\s*Оп\.\s*[^\s]+\s*Д\.\s*[^\s]+)", t)
+    if shelf:
+        out["shelf"] = shelf.group(1).strip()
+        t = t[: shelf.start()].rstrip(" .—-")
+    if t:
+        out["zagolovok_polnyi"] = t
+    txt = flat(html)
+    out.update(find_scale(txt))
+    d = re.search(r"Даты?[^:]{0,12}:\s*([^|<]{3,40})", txt)
+    if d:
+        out["daty"] = d.group(1).strip()
+    return out
+
+
+def parse_shpl(html: str) -> dict:
+    """ГПИБ: h1 — только последний уровень дерева, поэтому заголовок собираем с родителями.
+
+    Без цепочки получается «№ 158, 10 июня» или «Матвеев А. С.» — запись, по которой
+    нельзя понять, что это за источник (проба 16.11.2026 на шести узлах).
+    """
+    out: dict = {}
+    h1 = re.search(r'<h1[^>]*node-title[^>]*>([^<]{1,200})', html)
+    chain = [unescape(x).strip() for x in
+             re.findall(r'nodes/\d+[^"]*"[^>]*>([^<]{3,120})', html)[:8]]
+    # Первые уровни — навигация самой библиотеки, они ничего не говорят об источнике.
+    # Верхние уровни — рубрики самой библиотеки («Книжные издания», «Газеты»): в название
+    # источника они не входят, но в put_v_dereve остаются, чтобы путь не терялся.
+    chain = [c for c in chain if c not in NAV_SHPL]
+    full_chain = [unescape(x).strip() for x in
+                  re.findall(r'nodes/\d+[^"]*"[^>]*>([^<]{3,120})', html)[:8]]
+    parts = chain + ([unescape(h1.group(1)).strip()] if h1 else [])
+    seen: list[str] = []
+    for p in parts:
+        if p and p not in seen:
+            seen.append(p)
+    if seen:
+        out["zagolovok_polnyi"] = " / ".join(seen)[:400]
+        out["put_v_dereve"] = " / ".join(full_chain)[:300]
+    txt = flat(html)
+    out.update(find_scale(txt))
+    return out
+
+
+def parse_permkrai(html: str) -> dict:
+    """Пермская краевая: название лежит в JSON-LD schema.org — надёжнее, чем <title>."""
+    out: dict = {}
+    m = re.search(r'"@type"\s*:\s*"[^"]*"\s*,\s*"name"\s*:\s*"((?:[^"\\]|\\.)*)"', html)
+    if m:
+        try:
+            out["zagolovok_polnyi"] = json.loads(f'"{m.group(1)}"')
+        except json.JSONDecodeError:
+            out["zagolovok_polnyi"] = m.group(1)
+    if not out.get("zagolovok_polnyi"):
+        t = re.search(r"<title>(.*?)</title>", html, re.S | re.I)
+        if t:
+            out["zagolovok_polnyi"] = unescape(re.sub(r"\s+", " ", t.group(1))).split("|")[0].strip()
+    txt = flat(html)
+    out.update(find_scale(txt))
+    return out
+
+
+def parse_vivaldi(html: str) -> dict:
+    """РНБ (Vivaldi): страница /details отдаёт только заглавие и фонд-держатель."""
+    out: dict = {}
+    txt = flat(html)
+    m = re.search(r"Заглавие:\s*(.{3,300}?)\s*(?:Библиотечный фонд:|Полное библиограф"
+                  r"|Физическое описание:|Год издания:|Авторы?:|Доступные права)", txt)
+    if m:
+        out["zagolovok_polnyi"] = m.group(1).strip()
+    else:
+        h1 = re.search(r"<h1[^>]*>([^<]{3,200})", html)
+        if h1:
+            out["zagolovok_polnyi"] = unescape(h1.group(1)).strip()
+    f = re.search(r"Библиотечный фонд:\s*([^|]{3,80}?)\s*(?:Полное|Доступные)", txt)
+    if f:
+        out["fond_derzhatel"] = f.group(1).strip()
+    out.update(find_scale(txt))
+    return out
+
+
+def parse_bnf(xml: str) -> dict:
+    """BnF: UNIMARC из SRU. 200 — заглавие, 300 — название по-французски, 210$d — год,
+    206$a — масштаб картографического документа, 930$a — cote (шифр), 7xx — авторы."""
+    out: dict = {}
+    fields: dict[str, list[list[tuple[str, str]]]] = {}
+    for m in re.finditer(r'<([\w:]*datafield)[^>]*tag="(\d+)"[^>]*>(.*?)</\1>', xml, re.S):
+        subs = [(c, unescape(v).strip()) for c, v in
+                re.findall(r'code="(\w)"[^>]*>([^<]*)<', m.group(3))]
+        fields.setdefault(m.group(2), []).append(subs)
+
+    def sub(tag: str, code: str) -> str:
+        for subs in fields.get(tag, []):
+            for c, v in subs:
+                if c == code and v:
+                    return v
+        return ""
+
+    title = sub("200", "a")
+    rest = " ; ".join(v for c, v in (fields.get("200", [[]])[0]) if c in ("e", "f") and v)
+    if title:
+        out["zagolovok_polnyi"] = f"{title} ; {rest}"[:400] if rest else title
+    fr = sub("300", "a")
+    if fr:
+        out["zagolovok_fr"] = fr
+    year = sub("210", "d")
+    if year:
+        out["god"] = year
+    cote = sub("930", "a")
+    if cote:
+        out["shelf"] = cote
+        place = sub("930", "c")
+        if place:
+            out["mesto_hraneniya"] = place
+    sc = sub("206", "a") or sub("123", "a")
+    if sc:
+        m = SC.search(sc)
+        if m:
+            out["scale"] = int(re.sub(r"\D", "", m.group(1)))
+        out["scale_ctx"] = sc[:120]
+    authors = []
+    for tag in ("700", "701", "702", "703", "712"):
+        for subs in fields.get(tag, []):
+            a = dict(subs)
+            name = " ".join(x for x in (a.get("a", ""), a.get("b", "")) if x).strip()
+            if name:
+                authors.append(name)
+    if authors:
+        out["avtory"] = "; ".join(dict.fromkeys(authors))[:300]
+    phys = sub("215", "a")
+    if phys:
+        out["opisanie_fiz"] = phys
+    return out
+
+
+PARSERS = {
+    "yar-archives.ru": parse_yar,
+    "elib.shpl.ru": parse_shpl,
+    "lib.permkrai.ru": parse_permkrai,
+    "vivaldi.nlr.ru": parse_vivaldi,
+    "catalogue.bnf.fr": parse_bnf,
+}
+
+
+def parse_for(src: str, body: str) -> dict:
+    """Разбор карточки парсером своей площадки; для РГБ/ПрБ/НЭБ/РГО — общий parse()."""
+    host = src.split("/")[2].lower() if "//" in src else ""
+    for key, fn in PARSERS.items():
+        if key in host:
+            return fn(body)
+    return parse(body)
 
 
 def parse(html: str) -> dict:
@@ -135,12 +404,28 @@ def main() -> None:
              "открылся и rusneb.ru с elib.rgo.ru отвечают 200 — прежняя пометка больше "
              "не отражает факт",
     )
+    ap.add_argument("--queue", type=str, default="",
+                    help="файл очереди (по умолчанию output/work_2026-11-08/work.jsonl); "
+                         "журнал добора пишется рядом с ним")
+    ap.add_argument("--hosts", type=str, default="",
+                    help="через запятую: обходить только эти хосты/держателей")
     args = ap.parse_args()
 
-    rows = [json.loads(ln) for ln in WORK.open(encoding="utf-8")]
+    work, out_path = WORK, OUT
+    if args.queue:
+        work = Path(args.queue)
+        if not work.exists():
+            raise SystemExit(f"нет файла очереди: {work}")
+        out_path = work.with_name("harvested.jsonl")
+
+    rows = [json.loads(ln) for ln in work.open(encoding="utf-8")]
+    if args.hosts:
+        want = {h.strip().lower() for h in args.hosts.split(",") if h.strip()}
+        rows = [r for r in rows
+                if any(w in r["url"].lower() or w in r.get("holder", "").lower() for w in want)]
     done: set[str] = set()
-    if OUT.exists():
-        for ln in OUT.open(encoding="utf-8"):
+    if out_path.exists():
+        for ln in out_path.open(encoding="utf-8"):
             try:
                 rec = json.loads(ln)
             except json.JSONDecodeError:
@@ -153,6 +438,10 @@ def main() -> None:
             # а не отсутствие карточки; лечится увеличенной паузой, а не отказом.
             if args.retry_unavailable and ("недоступ" in st or st == "не ответил"):
                 continue
+            # Заслон (капча/авторизация) — всегда возвращаем в очередь, без флага:
+            # это состояние хоста в тот момент, а не свойство карточки.
+            if st.startswith("заслон"):
+                continue
             done.add(rec["key"])
     todo = [r for r in rows if r["key"] not in done]
     if args.limit:
@@ -161,16 +450,24 @@ def main() -> None:
           flush=True)
 
     got = skipped = 0
-    with OUT.open("a", encoding="utf-8") as f:
+    with out_path.open("a", encoding="utf-8") as f:
         for i, r in enumerate(todo, 1):
             src = route(r)
             if not src:
-                r["status"] = "хост недоступен (НЭБ 403 / РГО лежит)"
+                # Причина отказа пишется словами: «пропущено» без причины уже дважды
+                # маскировало то, что у площадки просто нет маршрута (11.11 и 16.11.2026).
+                r["status"] = blocked_reason(r["url"]) or "нет маршрута в route()"
                 skipped += 1
             else:
-                html = fetch(src)
-                if html:
-                    r.update(parse(html))
+                body = fetch(src)
+                if body and is_wall(body):
+                    # Заслон — это не пустая карточка: запись остаётся в очереди на
+                    # следующий заход, а хост выключается, чтобы не долбить его впустую.
+                    r["status"] = "заслон (капча/авторизация) — повторить позже"
+                    _fails[src.split("/")[2]] = DEAD_AFTER
+                    skipped += 1
+                elif body:
+                    r.update(parse_for(src, body))
                     r["istochnik_kartochki"] = src
                     r["status"] = "добрано" if r.get("zagolovok_polnyi") else "карточка пуста"
                     got += 1
@@ -182,7 +479,7 @@ def main() -> None:
                 print(f"  {i}/{len(todo)} — добрано {got}, пропущено {skipped}", flush=True)
 
     print(f"\nдобрано карточек: {got}; пропущено по недоступности: {skipped}")
-    print(f"файл: {OUT}")
+    print(f"файл: {out_path}")
 
 
 if __name__ == "__main__":
