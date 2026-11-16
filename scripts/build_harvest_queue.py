@@ -81,6 +81,16 @@ EXTRA_RE = {
     "goskatalog.ru": re.compile(r"goskatalog\.ru/(?:gk/|portal/)?#!/object/id=(\d+)"),
 }
 
+# РГАДА: у записи четыре разные формы ссылки, и у каждой свой уровень. Прежний единый
+# шаблон снимал номер ФОНДА — 257 ссылок улова сворачивались в один ключ и фонд выглядел
+# как одна карточка (разбор 16.11.2026). Порядок важен: сначала дело, потом опись.
+RGADA_RE = (
+    ("РГАДА-дело", re.compile(r"rgada\.info/kueh/\d+/(\d+_\d+_[\w-]+)")),
+    ("РГАДА-опись", re.compile(r"rgada\.info/dela/\d+/[\w-]+/(\d+-opis_[\w-]+)")),
+    ("РГАДА-опись", re.compile(r"rgada\.info/opisi/(\d+-(?:opis|ukaz)_[\w.-]+)\.pdf")),
+    ("РГАДА-гео", re.compile(r"rgada\.info/geos\d*/orig/(\d+)")),
+)
+
 # Маршруты, которые route() в harvest_cards.py умеет открывать (сверено 16.11.2026).
 ROUTED = {"РГБ", "ПрБ", "КП", "НЭБ", "РГО"}
 
@@ -90,6 +100,12 @@ NEB_RGB = re.compile(r"^000199_000009_(\d{9})$")
 
 def card_key(url: str) -> tuple[str, str] | None:
     """Ключ карточки: («держатель», «идентификатор») или None, если ссылка не карточная."""
+    if "rgada.info" in url:
+        for holder, rx in RGADA_RE:
+            m = rx.search(url)
+            if m:
+                return (holder, m.group(1))
+        return None          # poisk/db.php и страницы фондов — не записи
     for host, rx in {**RECORD_RE, **EXTRA_RE}.items():
         if host not in url:
             continue

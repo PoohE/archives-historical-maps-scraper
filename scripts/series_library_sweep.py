@@ -25,6 +25,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(r"D:\IG Dropbox\Andy PoohV\Project\Claude\scripts\lib")))
 from common import fix_stdout, log  # noqa: E402
 
+# ⚠️ `common.log` — ФАБРИКА логгеров, а не print: вызов log("текст") создавал
+# логгер с таким именем и не печатал ничего. Из-за этого прогон добора полей
+# 15.11.2026 отработал 71 минуту с ПУСТЫМ логом — следить было не за чем.
+LOG = log("series_library_sweep")
+
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "output" / "series_library_sweep"
 SKILL = Path.home() / ".claude" / "skills" / "yandex-search-api"
@@ -173,11 +178,93 @@ for _k, _v in EXT.items():
     SERIES_QUERIES[_k] += [x for x in _v if x not in SERIES_QUERIES[_k]]
 
 
+# --- расширение 15.11.2026: запросы по разобранным позициям раздела Г (статистико-
+# экономические серии). Состав и обоснование — series_queries_G_2026_11_14.py.
+# Площадки дополнены областными библиотеками и ГПНТБ России (выявлена при разборе Г23:
+# через неё лежит оцифровка горной и технической статистики). robots ГПНТБ прочитан
+# 15.11.2026: на www.gpntb.ru закрыты только служебные пути Joomla, на ecology.gpntb.ru
+# закрыт /search/ — учитывать при чтении карточек, на site:-запросы не влияет.
+from series_queries_G_2026_11_14 import GQ, SITES_EXTRA  # noqa: E402
+
+for _k, _v in GQ.items():
+    SERIES_QUERIES.setdefault(_k, [])
+    SERIES_QUERIES[_k] += [x for x in _v if x not in SERIES_QUERIES[_k]]
+SITES += [s for s in SITES_EXTRA if s not in SITES]
+
+
+# --- расширение 15.11.2026 (вторая порция): четыре позиции, под которые фраз не было —
+# Г10+Г11, Г24–Г26, земские картограммы, кандидат «Картография МПС».
+from series_queries_G2_2026_11_15 import GQ2  # noqa: E402
+
+for _k, _v in GQ2.items():
+    SERIES_QUERIES.setdefault(_k, [])
+    SERIES_QUERIES[_k] += [x for x in _v if x not in SERIES_QUERIES[_k]]
+
+
+# --- расширение 16.11.2026 (третья порция): девять карточек справочника, по которым в
+# словарях не было НИ ОДНОЙ фразы. Выявлены `series_coverage_check.py` — сверкой по
+# содержанию запросов, а не по первым знакам названия (прежний признак давал 24 позиции,
+# из них 13 на деле покрыты). Две позиции вне территориального скоупа в прогон не берём.
+from series_queries_2026_11_16 import GQ3  # noqa: E402
+
+for _k, _v in GQ3.items():
+    SERIES_QUERIES.setdefault(_k, [])
+    SERIES_QUERIES[_k] += [x for x in _v if x not in SERIES_QUERIES[_k]]
+
+
+# --- расширение площадок 16.11.2026 (строка Б1.6 чек-листа). Добавлены ТОЛЬКО те, у кого
+# проба `probe_sites_2026_11_16.py` показала форму КАРТОЧКИ ЗАПИСИ, а не раздел сайта.
+# Не добавлены, хотя выдача есть: statearchive.ru (ГАРФ) и gaso-ural.ru — в выдаче разделы
+# сайта и PDF-путеводители; garf-nika.ru — 9 строк, одни новости: НИКА отдаёт данные
+# POST-запросами и в индекс не попадает, её берут своим клиентом, а не site:-поиском.
+# Пустая выдача: rgvia.ru (сайта нет), arhiv.admin-smolensk.ru, gako.kaluga.ru.
+SITES += [s for s in (
+    "fgurgia.ru",        # РГИА, электронная опись: /object/N
+    "rgada.info",        # РГАДА: /dela/<фонд>/
+    "yar-archives.ru",   # ГАЯО: /archiveN/unit/N — единицы хранения
+    "archive.perm.ru",   # ГАПК: /catalog/N-N/N-N/
+    "goskatalog.ru",     # Госкаталог музейного фонда
+    "gallica.bnf.fr",    # BnF Gallica
+    "catalogue.bnf.fr",  # BnF, каталог
+    "davidrumsey.com",   # David Rumsey Map Collection
+    "loc.gov",           # Library of Congress
+    "rasl.ru",           # БАН, ИРБИС
+) if s not in SITES]
+
+
 RECORD_RE = {
     "search.rsl.ru": re.compile(r"search\.rsl\.ru/ru/record/(\d+)"),
     "rusneb.ru": re.compile(r"rusneb\.ru/catalog/([0-9A-Za-z_]+)"),
     "prlib.ru": re.compile(r"prlib\.ru/item/(\d+)"),
     "elib.rgo.ru": re.compile(r"elib\.rgo\.ru/handle/([0-9/]+)"),
+    # --- 16.11.2026: четыре хоста давали записи, но не распознавались как каталожные,
+    # и весь их улов выпадал из подсчётов. Формы URL сняты по фактической выдаче прогона.
+    "elib.shpl.ru": re.compile(r"elib\.shpl\.ru/(?:ru/)?nodes/(\d+)"),        # ГПИБ, 5 417 строк
+    "lib.permkrai.ru": re.compile(r"lib\.permkrai\.ru/node/(\d+)"),          # Пермская краевая
+    "primo.nlr.ru": re.compile(r"primo\.nlr\.ru/primo-explore/fulldisplay\?[^\s]*docid=([0-9A-Za-z_]+)"),
+    "vivaldi.nlr.ru": re.compile(r"vivaldi\.nlr\.ru/([a-z]{2}\d{9})/details"),  # РНБ, оцифровка
+    # --- формы карточек новых площадок, сняты по фактической выдаче пробы 16.11.2026
+    "fgurgia.ru": re.compile(r"fgurgia\.ru/object/(\d+)"),
+    # 16.11.2026: прежний шаблон `dela/(\d+)/` снимал номер ФОНДА, поэтому страница
+    # фонда считалась записью, а 257 ссылок улова сворачивались в один ключ.
+    # Формы сняты по фактической выдаче: образы дела (`kueh`), страницы и PDF описи,
+    # географические материалы. Страницы выдачи `poisk/db.php` записью НЕ считаются —
+    # это листалка базы дел, вход в неё описан в scripts_rgada/rgada_fund_opisi.py.
+    "rgada.info": re.compile(
+        r"rgada\.info/(?:"
+        r"kueh/\d+/(?P<delo>\d+_\d+_[\w-]+)"            # образы дела: фонд_опись_дело
+        r"|dela/\d+/[\w-]+/(?P<opis_img>\d+-opis_[\w-]+)"  # постраничная опись
+        r"|opisi/(?P<opis_pdf>\d+-(?:opis|ukaz)_[\w.-]+)\.pdf"  # PDF описи
+        r"|geos\d*/orig/(?P<geo>\d+)"                     # географические материалы
+        r")"),
+    "yar-archives.ru": re.compile(r"yar-archives\.ru/archive\d+/unit/(\d+)"),
+    "archive.perm.ru": re.compile(r"archive\.perm\.ru/catalog/([\d\-/]+)"),
+    "goskatalog.ru": re.compile(r"goskatalog\.ru/(?:portal/)?#?!?/?object/id=(\d+)"),
+    "gallica.bnf.fr": re.compile(r"gallica\.bnf\.fr/ark:/(\d+/[a-z0-9]+)"),
+    "catalogue.bnf.fr": re.compile(r"catalogue\.bnf\.fr/ark:/(\d+/cb\d+)"),
+    "davidrumsey.com": re.compile(r"davidrumsey\.com/luna/servlet/detail/(RUMSEY~[^\s\"]+)"),
+    "loc.gov": re.compile(r"loc\.gov/item/([\w\.]+)/?"),
+    "rasl.ru": re.compile(r"rasl\.ru/cgi-bin/irbis\w*/cgiirbis_\d+\.exe\?[^\s]*"),
 }
 
 
@@ -257,10 +344,10 @@ def main() -> None:
             sf.write(q + "\n")
             sf.flush()
             total += kept
-            log(f"[{i}/{len(qs)}] {q[:70]} → {kept}")
+            LOG.info(f"[{i}/{len(qs)}] {q[:70]} → {kept}")
             time.sleep(1.0)
 
-    log(f"всего строк выдачи: {total}; файл: {hits_path}")
+    LOG.info(f"всего строк выдачи: {total}; файл: {hits_path}")
 
 
 if __name__ == "__main__":
