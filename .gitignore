@@ -73,3 +73,6 @@ input_*/
 *token*.txt
 *.key
 *.pem
+
+# генерируемый бандл сертификатов (собирается scripts/ru_tls.py)
+scripts/certs/ru_bundle.pem
