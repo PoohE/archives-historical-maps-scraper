@@ -103,6 +103,14 @@ DEAD_AFTER = 3
 # как «молчит», хотя сайт жив.
 TIMEOUT = {"elib.rgo.ru": 40}
 _walls: dict[str, int] = {}   # заслоны ПОДРЯД по хосту (сбрасывается удачей)
+# 20.11.2026: КАРАНТИН вместо казни. Прежде DEAD_AFTER отказов выключали площадку
+# «до конца прогона», и на десятичасовом прогоне это приговор без пересмотра: 403
+# у www.prlib.ru и таймаут у rusneb.ru были всплеском частоты — через час оба
+# отвечали 200 за 0,5-2 с, но 1 379 их карточек уже помечены без запроса.
+# Теперь хост уходит в карантин на нарастающий срок и пробуется снова.
+_quarantine: dict[str, float] = {}   # хост -> время, до которого не трогаем
+_q_round: dict[str, int] = {}        # сколько раз уже уходил в карантин
+QUARANTINE_MIN = (10, 20, 40, 60)    # минуты по кругам, дальше — последний
 
 _last: dict[str, float] = {}
 _fails: dict[str, int] = {}
@@ -198,10 +206,26 @@ def route(row: dict) -> str | None:
     return None
 
 
+def _send_to_quarantine(host: str, why: str) -> None:
+    """Увести площадку в карантин на нарастающий срок вместо выключения насовсем."""
+    rnd = _q_round.get(host, 0)
+    mins = QUARANTINE_MIN[min(rnd, len(QUARANTINE_MIN) - 1)]
+    _q_round[host] = rnd + 1
+    _quarantine[host] = time.time() + mins * 60
+    print(f"  !! {host}: {why} — карантин {mins} мин (круг {rnd + 1})", flush=True)
+
+
 def fetch(url: str) -> str | None:
     host = url.split("/")[2]
-    if _fails.get(host, 0) >= DEAD_AFTER:
-        return None
+    until = _quarantine.get(host, 0.0)
+    if until:
+        if time.time() < until:
+            return None                        # ещё в карантине — не трогаем
+        # срок вышел: снимаем карантин и даём площадке новый шанс
+        _quarantine.pop(host, None)
+        _fails[host] = 0
+        _walls[host] = 0
+        print(f"  ~~ {host}: карантин истёк, пробую снова", flush=True)
     gap = DELAY.get(host, 1.5)
     wait = gap - (time.time() - _last.get(host, 0))
     if wait > 0:
@@ -221,13 +245,13 @@ def fetch(url: str) -> str | None:
         if e.code in (404, 410):
             return None
         _fails[host] = _fails.get(host, 0) + 1
-        if _fails[host] == DEAD_AFTER:
-            print(f"  !! {host} отвечает {e.code} {DEAD_AFTER} раза — отключаю до конца прогона", flush=True)
+        if _fails[host] >= DEAD_AFTER:
+            _send_to_quarantine(host, f"отвечает {e.code} {DEAD_AFTER} раза")
         return None
     except (urllib.error.URLError, TimeoutError, OSError):
         _fails[host] = _fails.get(host, 0) + 1
-        if _fails[host] == DEAD_AFTER:
-            print(f"  !! {host} молчит {DEAD_AFTER} раза — отключаю до конца прогона", flush=True)
+        if _fails[host] >= DEAD_AFTER:
+            _send_to_quarantine(host, f"молчит {DEAD_AFTER} раза")
         return None
 
 
@@ -547,9 +571,7 @@ def main() -> None:
                     _walls[h] = _walls.get(h, 0) + 1
                     r["status"] = "заслон (капча/авторизация) — повторить позже"
                     if _walls[h] >= DEAD_AFTER:
-                        _fails[h] = DEAD_AFTER
-                        print(f"  !! {h}: {DEAD_AFTER} заслона подряд — отключаю до конца прогона",
-                              flush=True)
+                        _send_to_quarantine(h, f"{DEAD_AFTER} заслона подряд")
                     skipped += 1
                 elif body:
                     _walls[src.split("/")[2]] = 0      # страница взята — серия стен прервана
