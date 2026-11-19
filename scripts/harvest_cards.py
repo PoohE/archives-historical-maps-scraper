@@ -68,7 +68,7 @@ OUT = DIR / "harvested.jsonl"
 
 UA = {"User-Agent": "Mozilla/5.0 (research; IGRAS RNF 26-17-00347; contact down.pooh@gmail.com)"}
 DELAY = {"search.rsl.ru": 1.2, "www.prlib.ru": 2.0, "kp.rusneb.ru": 1.5,
-         "rusneb.ru": 4.0, "elib.rgo.ru": 2.5,
+         "rusneb.ru": 4.0, "elib.rgo.ru": 4.0,   # 19.11: при 2,5 с треть обращений уходила в таймаут
          # 16.11.2026, новые площадки. ГАЯО — 3 с: портал режет сессию капчей по квоте
          # обращений, медленнее ходить дешевле, чем ловить капчу на 60-й записи.
          "af.yar-archives.ru": 3.0, "yar-archives.ru": 3.0, "elib.shpl.ru": 1.5,
