@@ -20,6 +20,7 @@ import json
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -93,7 +94,11 @@ def main() -> None:
                 if dst.exists() and dst.stat().st_size > 2000:
                     skipped += 1
                     continue
-                url = f"{BASE}/upload/images/lists_auto/{num}_{op}/{name}"
+                # ⚠️ 19.11.2026: у части описей ГАСО-Урал в НОМЕРЕ кириллическая буква
+                # («10а», «13а»), и http.client падал с UnicodeEncodeError на ascii —
+                # прогон обрывался посреди фонда. Путь квотируем.
+                seg = urllib.parse.quote(f"{num}_{op}", safe="")
+                url = f"{BASE}/upload/images/lists_auto/{seg}/{name}"
                 blob = fetch_bytes(url)
                 if not blob or len(blob) < 2000:
                     dead += 1

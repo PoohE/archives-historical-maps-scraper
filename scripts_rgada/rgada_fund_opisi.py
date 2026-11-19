@@ -127,13 +127,23 @@ GRAFA = {
     "Дата": "data", "Город": "gorod", "Связка": "svyazka", "Документ": "dokument",
     "Заголовок": "zagolovok", "Колич. листов": "listov", "Примечание": "primechanie",
     "Подлинник": "podlinnik",
+    # 19.11.2026: при поиске ПО ТЕРМИНУ (T1) шапка другая — 12 граф вместо восьми,
+    # и заголовков два: дела и документа внутри дела. Без этих ключей строки молча
+    # отбрасывались, и целевой обход ф. 248 давал ноль при счётчике 60.
+    "Заголовок ед. хр.": "zagolovok", "Заголовок документа": "zagolovok_dok",
+    "Часть/Литера": "litera", "Номер документа": "nomer_dok", "Листы": "listy",
+    "Начальная дата": "data_ot", "Конечная дата": "data_do",
 }
 
 
 def parse_dela_page(html: str) -> list[dict]:
     """Записи дел со страницы выдачи: графы из шапки, поток ячеек делим по её длине."""
     by_row = [[plain(c) for c in TD.findall(tr)] for tr in TR.findall(html)]
-    head_i = next((i for i, c in enumerate(by_row) if "Заголовок" in c and len(c) >= 4), None)
+    # Шапку ищем ПО ПОДСТРОКЕ: у выдачи по термину графа называется «Заголовок ед. хр.»,
+    # а не «Заголовок», и проверка на точное совпадение элемента давала head_i = None —
+    # разбор молча возвращал пустой список при счётчике 60 (разбор 19.11.2026).
+    head_i = next((i for i, c in enumerate(by_row)
+                   if len(c) >= 4 and any("Заголовок" in x for x in c)), None)
     if head_i is None:
         return []
     keys = [GRAFA.get(h, h.lower()) for h in by_row[head_i]]
@@ -144,7 +154,9 @@ def parse_dela_page(html: str) -> list[dict]:
     step = len(keys)
     for i in range(0, len(flat) - step + 1, step):
         rec = dict(zip(keys, flat[i:i + step]))
-        if rec.get("zagolovok"):
+        # Запись считается содержательной, если есть любой из заголовков: у выдачи
+        # по термину заполнен заголовок документа, у выдачи по фонду — заголовок дела.
+        if rec.get("zagolovok") or rec.get("zagolovok_dok"):
             out.append(rec)
     return out
 
