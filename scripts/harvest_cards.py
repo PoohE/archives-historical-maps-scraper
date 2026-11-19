@@ -98,6 +98,10 @@ SKIP_HOLDERS: set[str] = set()         # 13.11.2026: маршрут открыл
 # 000202_000006_1276940 (43 756 байт) и handle РГО (17 996 байт). Платный scrape.do
 # для НЭБ больше не нужен. Прежде здесь было {"НЭБ", "РГО"} — 403 и лежащий хост.
 DEAD_AFTER = 3
+# Площадки, которым 15 с мало. elib.rgo.ru отдаёт страницы по 70-90 КБ и на
+# зарубежном выходе VPN укладывается в 20-35 с — при timeout=15 это выглядело
+# как «молчит», хотя сайт жив.
+TIMEOUT = {"elib.rgo.ru": 40}
 
 _last: dict[str, float] = {}
 _fails: dict[str, int] = {}
@@ -152,7 +156,13 @@ def route(row: dict) -> str | None:
         return url                               # прочие записи НЭБ — прямым запросом
     if "prlib.ru" in host:
         return url.replace("https://prlib.ru/", "https://www.prlib.ru/")
-    if "kp.rusneb.ru" in host or "elib.rgo.ru" in host:
+    if "elib.rgo.ru" in host:
+        # 19.11.2026: в очередь попали ссылки вида /handle/N/M/simple-search?… и
+        # /handle/N/M?offset=50 (97 из 1 152). Это страницы ПОИСКА внутри раздела,
+        # а не карточки: заголовок с них снимался как «…: Поиск». Режем до handle.
+        m = re.match(r"(https?://elib\.rgo\.ru/handle/\d+/\d+)", url)
+        return m.group(1) if m else url
+    if "kp.rusneb.ru" in host:
         return url
     if "yar-archives.ru" in host:                # ГАЯО: карточка живёт на поддомене af.
         return re.sub(r"https?://(?:af\.)?yar-archives\.ru",
@@ -181,10 +191,22 @@ def fetch(url: str) -> str | None:
         time.sleep(wait)
     _last[host] = time.time()
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=15) as r:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=UA),
+                                    timeout=TIMEOUT.get(host, 15)) as r:
             body = r.read().decode("utf-8", "ignore")
         _fails[host] = 0
         return body
+    except urllib.error.HTTPError as e:
+        # 19.11.2026: «карточки нет» — не отказ площадки. Прежде три 404 подряд
+        # выключали хост на весь прогон: у РГО в очереди именно такие ссылки идут
+        # первыми, и 1 152 карточки терялись при живом сайте (проверено вручную:
+        # те же handle отдают 200 на 70-90 КБ).
+        if e.code in (404, 410):
+            return None
+        _fails[host] = _fails.get(host, 0) + 1
+        if _fails[host] == DEAD_AFTER:
+            print(f"  !! {host} отвечает {e.code} {DEAD_AFTER} раза — отключаю до конца прогона", flush=True)
+        return None
     except (urllib.error.URLError, TimeoutError, OSError):
         _fails[host] = _fails.get(host, 0) + 1
         if _fails[host] == DEAD_AFTER:
