@@ -388,7 +388,38 @@ def parse_bnf(xml: str) -> dict:
     return out
 
 
+def parse_rgo(html: str) -> dict:
+    """DSpace библиотеки РГО: карточка узнаётся по citation_title.
+
+    19.11.2026. Общий parse() берёт <title>, а у РГО это «Библиотека Русского
+    географического общества: <раздел>» — поэтому страницы РАЗДЕЛОВ коллекции
+    («Карты», «Книги», «1845-1917», «Вход») уходили в журнал со статусом
+    «добрано» и пустым содержанием. Карточку от раздела отличает мета-тег
+    citation_title: у разделов его нет. Нет тега — возвращаем пустой разбор,
+    и вызывающий код сам помечает запись как «карточка пуста».
+    """
+    out: dict = {}
+    m = re.search(r'<meta\s+[^>]*name="citation_title"[^>]*content="([^"]+)"', html, re.I)
+    if not m:
+        return out                                   # раздел коллекции, не запись
+    out["zagolovok_polnyi"] = unescape(re.sub(r"\s+", " ", m.group(1))).strip()
+    d = re.search(r'<meta\s+[^>]*name="citation_date"[^>]*content="([^"]+)"', html, re.I)
+    if d:
+        out["god"] = d.group(1).strip()
+    txt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
+    w = re.search(r"Масштаб[^.;]{0,160}", txt)
+    sc = SC.search(w.group(0)) if w else SC.search(out["zagolovok_polnyi"])
+    if sc:
+        out["scale"] = int(re.sub(r"\D", "", sc.group(1)))
+        out["scale_ctx"] = (w.group(0) if w else sc.group(0)).strip()[:120]
+    sh = SHELF.search(txt)
+    if sh:
+        out["shelf"] = sh.group(1).strip()
+    return out
+
+
 PARSERS = {
+    "elib.rgo.ru": parse_rgo,
     "yar-archives.ru": parse_yar,
     "elib.shpl.ru": parse_shpl,
     "lib.permkrai.ru": parse_permkrai,
@@ -430,6 +461,8 @@ def parse(html: str) -> dict:
     if m:
         out["shelf"] = m.group(1).strip()
     return out
+
+
 
 
 def main() -> None:
