@@ -1,0 +1,26 @@
+# Переводы строк — LF (по образцу репозитория Claude, решение владельца 21.11.2026).
+#
+# Папка лежит на Яндекс.Диске и синхронизируется между машинами, а
+# core.autocrlf=true возвращает CRLF в рабочую копию при каждом checkout:
+# разные байты одного файла → «Конфликтующая копия». В репозитории Claude так
+# разошлись 12 файлов, шесть дали конфликтные копии; здесь было 142 файла с CRLF.
+* text=auto eol=lf
+
+# Пакетные файлы Windows: cmd.exe разбирает метки и блоки goto построчно.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Бинарное — git не должен трогать его переводами строк.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.djvu binary
+*.tif binary
+*.tiff binary
+*.docx binary
+*.xlsx binary
+*.zip binary
+*.7z binary
+*.gz binary
