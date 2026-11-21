@@ -25,6 +25,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(r"D:\IG Dropbox\Andy PoohV\Project\Claude\scripts\lib")))
 
 from common import env, fix_stdout, load_env, log  # noqa: E402
+
+# ⚠️ `common.log` — ФАБРИКА логгеров, а не print: вызов log("текст") создавал
+# логгер с таким именем и не печатал ничего. Из-за этого прогон добора полей
+# 15.11.2026 отработал 71 минуту с ПУСТЫМ логом — следить было не за чем.
+LOG = log("fix_heuristic_scales")
 from mezh_batch_tag import ENV_PATH, SLEEP, retry, rt  # noqa: E402
 from notion_client import Client  # noqa: E402
 
@@ -151,7 +156,7 @@ def main() -> None:
             w.flush()
             written += 1
             time.sleep(SLEEP)
-    log(f"записано правок: {written}")
+    LOG.info(f"записано правок: {written}")
 
 
 if __name__ == "__main__":

@@ -51,10 +51,17 @@ PROFILES = {
             "scale": "scale", "scale_src": "scale_src", "title": "title"},
     "neb": {"dates": "god", "lo": None, "hi": None,
             "scale": "scale", "scale_src": None, "title": "zagolovok_polnyi"},
+    # 21.11.2026: улов добора 16-20.11. Год уже разложен по двум полям при сборке
+    # пакета, признак происхождения масштаба пишется в scale_src («из карточки
+    # источника» / «из заголовка карточки») — поэтому профиль их знает.
+    "ulov": {"dates": None, "lo": "год_нижний", "hi": "год_верхний",
+             "scale": "scale", "scale_src": "scale_src", "title": "zagolovok_polnyi"},
 }
 
 
 def guess_profile(row: dict) -> str:
+    if "год_источник" in row or "год_нижний" in row:
+        return "ulov"
     if "year_lo" in row or "fond_name" in row:
         return "gaso"
     if "pdf" in row or "description" in row:

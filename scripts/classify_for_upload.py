@@ -44,6 +44,18 @@ PACKS = [
     ("rgo", "work_2026-11-08/rgo_package.jsonl", "title", "description"),
     ("neb", "work_2026-11-08/neb_package.jsonl", "title", "series"),
     ("rgia380", "rgia380_ours/package_rgia380.jsonl", "title", "opis_annotation"),
+    # 16.11.2026: улов серийного прогона после добора полей. Нужен именно смысловой
+    # разбор: в выдаче Пермской электронной библиотеки рядом с «Обзором Пермской губернии
+    # за 1913 год» и сметами земства лежат газета «Ленинец 1971», «Русские портреты XVIII
+    # и XIX столетий» и «Календарь знаменательных дат на 2026 год» — по подстроке заголовка
+    # их не развести, а заливать как источники нельзя.
+    ("ser_nash", "triage_G/harvested.jsonl", "полное_название", "серия"),
+    ("ser_mezh", "triage_G/harvested_mezh.jsonl", "полное_название", "серия"),
+    # 21.11.2026: улов добора 16-20.11 после территориального гейта (эталон 33/33)
+    # и дедупа с выгрузкой каталога 15.11 — 2 474 записи «наша территория».
+    # Контекст берём из сниппета, а НЕ из поля «seriya»: там метка словаря поиска,
+    # а не серия записи (у 539 записей сразу 3-5 меток — пересечение словарей).
+    ("ulov1121", "paket_nashi_novye_2026-11-21.jsonl", "zagolovok_polnyi", "snippet"),
 ]
 
 SYSTEM = """Ты разбираешь ЗАГОЛОВКИ АРХИВНЫХ ДЕЛ и библиотечных карточек XVIII — начала XX в.
@@ -294,9 +306,12 @@ def pilot() -> None:
     print(f"→ {WORK / 'pilot_gold.json'}")
 
 
-def load_all() -> list[dict]:
+def load_all(only: set[str] | None = None) -> list[dict]:
+    """only — какие наборы брать. Без него берутся все, как было до 16.11.2026."""
     rows = []
     for pack, rel, tf, cf in PACKS:
+        if only and pack not in only:
+            continue
         p = OUT / rel
         if not p.exists():
             print(f"  ⚠️ нет {rel}")
@@ -307,6 +322,8 @@ def load_all() -> list[dict]:
             r = json.loads(line)
             if pack == "rgia380" and r.get("v_kataloge"):
                 continue  # уже в каталоге, повторно не трогаем
+            if pack.startswith("ser_") and r.get("статус") != "добрано":
+                continue  # поля не добраны — классифицировать нечего
             rows.append({
                 "pack": pack, "n": n,
                 "title": str(r.get(tf) or "").strip(),
@@ -315,10 +332,10 @@ def load_all() -> list[dict]:
     return rows
 
 
-def submit(limit: int | None) -> None:
+def submit(limit: int | None, only: set[str] | None = None) -> None:
     load_env()
     client = anthropic_client()
-    rows = load_all()
+    rows = load_all(only)
     if limit:
         rows = rows[:limit]
     rows = [r for r in rows if r["title"]]
@@ -472,11 +489,31 @@ def main() -> None:
     ap.add_argument("cmd", choices=["pilot", "submit", "collect",
                                     "submit-types", "collect-types"])
     ap.add_argument("--limit", type=int)
+    ap.add_argument("--packs", help="какие наборы брать через запятую (по умолчанию все)")
+    # ⚠️ WORK по умолчанию — папка прогона 11.11; новый прогон обязан писать в свою,
+    # иначе batches.json и input.jsonl прежнего разбора затираются и собрать его
+    # результаты будет уже нечем.
+    ap.add_argument("--work", help="папка состояния прогона (по умолчанию upload_2026-11-11)")
     args = ap.parse_args()
+    global WORK, BATCH, BATCH2, RESULT, RESULT2
+    if args.work:
+        # ⚠️ 16.11.2026: в первой правке переопределялись только WORK/BATCH, а RESULT
+        # остался привязан к папке прогона 11.11 — `collect` записал разбор нового улова
+        # поверх `upload_2026-11-11/classified.jsonl`. Переопределять нужно ВСЕ пути,
+        # вычисленные на уровне модуля, иначе «своя папка» защищает только наполовину.
+        WORK = OUT / args.work
+        BATCH = WORK / "batches.json"
+        BATCH2 = WORK / "batches_types.json"
+        RESULT = WORK / "classified.jsonl"
+        # 21.11.2026: RESULT2 остался за кадром той же правки 16.11 — и разметка типов
+        # нового улова записалась поверх upload_2026-11-11/typed.jsonl. Тот же дефект,
+        # той же природы: пути, вычисленные на уровне модуля, надо переопределять ВСЕ.
+        RESULT2 = WORK / "typed.jsonl"
+    only = set(args.packs.split(",")) if args.packs else None
     if args.cmd == "pilot":
         pilot()
     elif args.cmd == "submit":
-        submit(args.limit)
+        submit(args.limit, only)
     elif args.cmd == "collect":
         collect()
     elif args.cmd == "submit-types":

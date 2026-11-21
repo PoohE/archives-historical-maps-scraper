@@ -19,6 +19,11 @@ from mezh_batch_tag import ENV_PATH, SLEEP, retry, rt  # noqa: E402
 sys.path.insert(0, str(Path(r"D:\IG Dropbox\Andy PoohV\Project\Claude\scripts\lib")))
 from common import env, fix_stdout, load_env, log  # noqa: E402
 
+# ⚠️ `common.log` — ФАБРИКА логгеров, а не print: вызов log("текст") создавал
+# логгер с таким именем и не печатал ничего. Из-за этого прогон добора полей
+# 15.11.2026 отработал 71 минуту с ПУСТЫМ логом — следить было не за чем.
+LOG = log("znaki_add_records")
+
 from notion_client import Client  # noqa: E402
 
 CATALOG = "5ead971c-b9bd-4bc2-90d8-73d0841b1f93"
@@ -338,7 +343,7 @@ def main() -> None:
 
     client = Client(auth=env("NOTION_TOKEN"))
     rgb_id = resolve_rgb(client)
-    log(f"РГБ в справочнике: {rgb_id}")
+    LOG.info(f"РГБ в справочнике: {rgb_id}")
 
     if args.mode == "apply":
         existing = set()
@@ -349,13 +354,13 @@ def main() -> None:
             for r in RECORDS:
                 title = r["Название источника"]
                 if title in existing:
-                    log(f"пропуск (уже создано): {title[:60]}")
+                    LOG.info(f"пропуск (уже создано): {title[:60]}")
                     continue
                 page = retry(lambda r=r: client.pages.create(
                     parent={"database_id": CATALOG}, properties=props_for(r, rgb_id)))
                 jl.write(json.dumps({"title": title, "id": page["id"]}, ensure_ascii=False) + "\n")
                 jl.flush()
-                log(f"создано: {title[:70]}")
+                LOG.info(f"создано: {title[:70]}")
                 time.sleep(SLEEP)
         return
 

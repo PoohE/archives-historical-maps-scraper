@@ -235,8 +235,16 @@ def page_id_from_url(u: str) -> str:
     return f"{s[0:8]}-{s[8:12]}-{s[12:16]}-{s[16:20]}-{s[20:32]}"
 
 
+#: 21.11.2026: сверка дубля — отдельный запрос к базе на КАЖДУЮ запись, а база выросла
+#: до 113 тыс. строк: фильтр `url equals` отвечает с задержкой и временами отдаёт 504.
+#: На пакете 1 567 записей это часы работы впустую, если дубль уже исключён офлайн.
+#: Флаг --assume-new пропускает сверку; ответственность за дедуп тогда на том, кто
+#: готовил пакет (свежая выгрузка + журналы created_pages.jsonl всех заливок после неё).
+ASSUME_NEW = False
+
+
 def find_page(url: str) -> dict | None:
-    if not url:
+    if ASSUME_NEW or not url:
         return None
     body = {"filter": {"property": URL_COL, "url": {"equals": url}}, "page_size": 1}
     res = api("POST", f"https://api.notion.com/v1/databases/{DB_ID}/query", body)
@@ -279,7 +287,13 @@ def main() -> None:
     ap.add_argument("--update", action="store_true",
                     help="обновлять существующие записи (по URL) вместо пропуска")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--assume-new", action="store_true",
+                    help="не сверять дубли через API: пакет уже проверен офлайн")
     a = ap.parse_args()
+    global ASSUME_NEW
+    ASSUME_NEW = bool(a.assume_new)
+    if ASSUME_NEW:
+        print("дедуп через API пропущен (--assume-new): пакет сверен офлайн")
     if not TOKEN:
         print("Нет NOTION_TOKEN (env или Каталогизация/.env)")
         sys.exit(1)
@@ -305,6 +319,8 @@ def main() -> None:
 
     rows = list(csv.DictReader(io.open(csv_path, encoding="utf-8-sig")))
     added = updated = skipped = errors = 0
+    journal = (io.open(os.devnull, "a", encoding="utf-8") if a.dry_run
+               else io.open(d / "created_pages.jsonl", "a", encoding="utf-8"))
     for r in rows:
         url = (r.get(URL_COL) or "").strip()
         props: dict = {}
@@ -339,8 +355,19 @@ def main() -> None:
             if a.dry_run:
                 continue
             try:
-                api("POST", "https://api.notion.com/v1/pages",
-                    {"parent": {"database_id": DB_ID}, "properties": props})
+                res = api("POST", "https://api.notion.com/v1/pages",
+                          {"parent": {"database_id": DB_ID}, "properties": props})
+                # ⚠️ ЖУРНАЛ СОЗДАНИЯ (16.11.2026). Пакет Белинки: итоговая строка моста
+                # сказала «создано: 30 | ошибок: 0», а в базе оказалось 6 записей —
+                # отличить прерванный прогон от dry-run было нечем, потому что id
+                # созданных страниц нигде не сохранялись. Теперь каждая удачная
+                # запись сразу фиксируется строкой в created_pages.jsonl: приёмка идёт
+                # по id (чтение страницы напрямую), а не по докладу и не по поиску,
+                # который на базе из 112 тыс. записей отвечает с задержкой.
+                journal.write(json.dumps(
+                    {"url": url, "page_id": res.get("id", ""), "date": a.date},
+                    ensure_ascii=False) + chr(10))
+                journal.flush()
                 time.sleep(0.34)
             except RuntimeError as e:
                 added -= 1
@@ -374,6 +401,7 @@ def main() -> None:
             errors += 1
             print(f"  Ошибка обновления [{title}]: {e}")
 
+    journal.close()
     tag = "DRY-RUN " if a.dry_run else ""
     print(f"{tag}создано: {added} | обновлено: {updated} | пропущено: {skipped} | ошибок: {errors}")
     if unresolved:
