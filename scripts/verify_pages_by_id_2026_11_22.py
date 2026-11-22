@@ -37,11 +37,16 @@ sys.path.insert(0, str(Path(r"D:\IG Dropbox\Andy PoohV\Project\Claude\scripts\li
 from common import env, fix_stdout, load_env  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-W = ROOT / "output" / "upload_2026-11-22-series"
+# Папка прогона задаётся аргументом: приёмка по номерам страниц нужна после КАЖДОЙ
+# заливки, а не только после набора 4.1 (23.11.2026 — второй прогон, пакет разбора 318).
+_RUN = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("-") \
+    else "upload_2026-11-22-series"
+W = ROOT / "output" / _RUN
 OUT = W / "pages_state.jsonl"
 ENV_PATH = Path(r"D:\Yandex.Disk\History&Geography\БД\Каталогизация\.env")
 SOURCES = [
     (W / "review_run" / "created_pages.jsonl", "page_id"),
+    (W / "probe_run" / "created_pages.jsonl", "page_id"),
     (W / "live_today.jsonl", "page_id"),
     (W / "live_today_sorted.jsonl", "page_id"),
 ]
