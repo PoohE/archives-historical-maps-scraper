@@ -1,0 +1,3056 @@
+{
+  "generated": "2026-10-11",
+  "total_queue": 381,
+  "kept": 23,
+  "dropped": 358,
+  "decisions": [
+    {
+      "url": "https://prlib.ru/item/1028887",
+      "title": "Открытие памятника Александру III 19 июня 1901 года в Кушвинском заводе Верхотурского уезда Пермской губернии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "сборник/извлечение/отзыв/лексика (не карта)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1029135",
+      "title": "Кресто-Воздвиженский собор (зимний) в городе Соликамске Пермского уезда Пермской губернии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "церковь/собор/часовня/монастырь (здание)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1029138",
+      "title": "Свято-Троицкий собор и Воскресенская церковь в городе Соликамске Пермского уезда Пермской губернии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "церковь/собор/часовня/монастырь (здание)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1029146",
+      "title": "Вид с восточной стороны Свято-Троицкого собора (летнего) в городе Соликамске Пермского уезда Пермской губернии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "церковь/собор/часовня/монастырь (здание)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1029153",
+      "title": "Богоявленская церковь в городе Соликамске Пермского уезда Пермской губернии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "церковь/собор/часовня/монастырь (здание)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1029158",
+      "title": "Старо-кладбищенская Святых жен мироносиц церковь с часовней в городе Соликамске Пермского уезда Пермской губернии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "церковь/собор/часовня/монастырь (здание)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1029161",
+      "title": "Преображенская (летняя) и Введенская (зимняя) церкви в городе Соликамске Пермского уезда Пермской губернии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1029166",
+      "title": "Часовня на месте убиенных в 1581 году, в городе Соликамске Пермского уезда Пермской губернии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "церковь/собор/часовня/монастырь (здание)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1037687",
+      "title": "Дело по требованию Пермского гражданского губернатора, об учреждении в Перми экспедиции о ссыльных",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1039401",
+      "title": "Дело по представлению Пермского гражданского губернатора об утверждении назначенных на представленных планах городов: Ирбита, Со...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1039957",
+      "title": "Дело по указу Правительствующего Сената касательно наложения на солепромышленниц титулярную советчицу Дубровину и наследников об...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1040052",
+      "title": "Дело по представлению Пермского гражданского губернатора о постройке в Соликамске гостиного двора",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1049979",
+      "title": "Отзыв профессора Тиме по вопросу об утверждении сравнительной ведомости на постройку железного моста через р. Иву на Пермских пу...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "сборник/извлечение/отзыв/лексика (не карта)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1055791",
+      "title": "Лексика солеварения в русском языке по материалам памятников письменности в современной речи жителей г. Соликамска",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "сборник/извлечение/отзыв/лексика (не карта)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1064858",
+      "title": "Дело о смерти соликамского городничего Репухова и об определении на его место подполковника Александрова, об увольнении его и об...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1080220",
+      "title": "Социальная политика в Пермской губернии. Благотворительность во второй половине XVIII –начале XX вв.: люди, события, факты [Элек...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1080488",
+      "title": "Протоколы заседаний пленума и президиума Пермского губернского совещания за период 11 апреля 1921 года - 13 января 1923 года и м...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "протокол заседания",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1126965",
+      "title": "Дело об открытии вновь прямых трактов от Архангельска до Перми и от Санкт-Петербурга до Вятки и Гжатска",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1337560",
+      "title": "Свод земских смет и раскладок Пермской губернии.... на 1913 год",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "свод смет/законы региона",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1337562",
+      "title": "Свод земских смет и раскладок Пермской губернии.... на 1915 год",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "свод смет/законы региона",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1337571",
+      "title": "Протокол заседания Общества врачей Пермской губернии. № 6-7",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "протокол заседания",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1337572",
+      "title": "Сборник сведений о положении начального народного образования в Пермской губернии. Вып. 2. Таблицы",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "сборник/извлечение/отзыв/лексика (не карта)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1337757",
+      "title": "Отчет о состоянии Пермской гимназии.... ...за 1893-1894 учебный год",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "отчёт",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1337764",
+      "title": "Губернский город Пермь",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1337823",
+      "title": "Устав Общества вспомоществования учащимся в Пермской Мариинской женской гимназии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "устав/правила общества",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1337824",
+      "title": "Устав общества вспомоществования нуждающимся ученицам Пермской Мариинской женской гимназии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "устав/правила общества",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1337844",
+      "title": "Извлечение из отчета Комитета Общества вспомоществования недостаточным воспитанникам Пермской духовной семинарии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "отчёт",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1337862",
+      "title": "[Устав Общества потребителей в г. Перми",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "устав/правила общества",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1339203",
+      "title": "Постановление ГКО СССР № 629 сс о разрешении Наркомату цветной металлургии во 2 полугодии 1941 г. уменьшить выпуск гипохлорита к...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "постановление/распоряжение властей",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1339591",
+      "title": "Постановление ГКО СССР № 815 о назначении Попова В. Ф. уполномоченным Государственного комитета обороны по делам эвакуации на Пе...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "постановление/распоряжение властей",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1339898",
+      "title": "Постановление ГКО СССР № 943 с об усилении выгрузки на предприятиях на Пермской железной дороге",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "постановление/распоряжение властей",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1339943",
+      "title": "Постановление ГКО СССР № 964 с о строительстве Заволжской рокадной линии по направлению от станции Балезино Пермской железной до...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "постановление/распоряжение властей",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1339945",
+      "title": "Постановление ГКО СССР № 965 с о развитии железнодорожных линий, узлов и усилении пропускной способности дорог Урала - Пермской,...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "постановление/распоряжение властей",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1349411",
+      "title": "Постановление ГКО СССР № 2189 сс об увеличении производства магния на двух действующих сериях Соликамского магниевого завода, с ...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "постановление/распоряжение властей",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1350219",
+      "title": "Постановление ГКО СССР № 2305 с о неотложных мерах по увеличению добычи угля в Кизеловском угольном бассейне, с приложением пере...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "постановление/распоряжение властей",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1357664",
+      "title": "Дело по отношению Хозяйственного департамента о поджогах в городе Перми и о поджогах в Пермской губернии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1422235",
+      "title": "Информационные сводки управляющего Пермской губернией о подготовке к эвакуации по губернии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1444488",
+      "title": "О внесении изменения в Закон Пермского края \"О разграничении имущества, находящегося в муниципальной собственности Кизеловского ...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "правительственный указ/декрет (О ...)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1444855",
+      "title": "О внесении изменений в Закон Пермского края \"О разграничении имущества, находящегося в муниципальной собственности Гремячинского...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "правительственный указ/декрет (О ...)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1445004",
+      "title": "О внесении изменений и дополнений в Закон Пермского края \"О разграничении имущества, находящегося в муниципальной собственности ...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "правительственный указ/декрет (О ...)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1445259",
+      "title": "О внесении изменений в Закон Пермского края \"О разграничении имущества, находящегося в муниципальной собственности Кизеловского ...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "правительственный указ/декрет (О ...)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1463005",
+      "title": "Об установлении окончательного размера санитарно-защитной зоны для имущественного комплекса промышленной площадки ОАО \"Метафракс...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "сборник/извлечение/отзыв/лексика (не карта)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1463038",
+      "title": "Об установлении размера санитарно-защитной зоны имущественного комплекса ОАО \"Губахинский кокс\", расположенного в г. Губаха Перм...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "сборник/извлечение/отзыв/лексика (не карта)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1560849",
+      "title": "Памятная книжка и адрес-календарь Калужской губернии .... ... на 1901 год",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "адрес-календарь/справочная книжка (директория)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1570542",
+      "title": "Дело о переводе соликамского городничего Варганова чердынским земским исправником",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1584096",
+      "title": "Дело о постройке здания для Соликамской женской гимназии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1591386",
+      "title": "Дело по донесению Пермской строительной комиссии о постройке тюремного замка в Перми",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1594663",
+      "title": "Дело по жалобе бельгийского подданного Люэста на притеснительные в отношении его действия соликамского исправника и местного ста...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1599401",
+      "title": "Дело об определении капитана Мейера соликамским городничим",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1623391",
+      "title": "Сборник Пермского земства. 1903 г. № 1",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "периодика земства/края",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1623413",
+      "title": "Сборник Пермского земства. 1899. № 6",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "периодика земства/края",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1623600",
+      "title": "Сборник Пермского земства. 1899. № 3",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "периодика земства/края",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1623656",
+      "title": "Сборник Пермского земства. 1904 г. № 1",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "периодика земства/края",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1623661",
+      "title": "Сборник Пермского земства. 1900 г. № 2",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "периодика земства/края",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1627676",
+      "title": "Сборник Пермского земства. 1905 г. № 1-2",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "периодика земства/края",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1627871",
+      "title": "Пермский краеведческий сборник. Вып. 3. 1917-1927",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "периодика земства/края",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1627907",
+      "title": "Сборник Пермского земства. 1900 г. № 4",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "периодика земства/края",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1627963",
+      "title": "Сборник Пермского земства. 1902 г. № 1",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "периодика земства/края",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1627970",
+      "title": "Сборник Пермского земства. 1901 г. № 3",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "периодика земства/края",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1627981",
+      "title": "Сборник Пермского земства. 1902 г. № 4",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "периодика земства/края",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1627998",
+      "title": "Сборник Пермского земства. 1901 г. № 2",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "периодика земства/края",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1628076",
+      "title": "Сборник Пермского земства. 1900 г. № 3",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "периодика земства/края",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1628129",
+      "title": "Сборник Пермского земства. 1902 г. №№ 5-6",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "периодика земства/края",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1628135",
+      "title": "Сборник Пермского земства. 1905 г. № 4",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "периодика земства/края",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1629815",
+      "title": "Дело о постройке здания для Соликамской мужской гимназии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1638524",
+      "title": "Дело об отпуске средств на устройство летних педагогических курсов в городе Соликамске Пермской губернии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1645452",
+      "title": "Дело об учреждении уральского общества попечения о начальном и профессиональном народном образовании Пермской губернии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1679433",
+      "title": "Дело об утверждении проекта устава Соликамского общественного собрания",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1681177",
+      "title": "Письмо актера И.В. Борисова о деятельности драматической труппы в Перми",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "личная переписка",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1682678",
+      "title": "Дело о введении всеобщего обучения в городе Перми Пермской губернии Оренбургского учебного округа",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1682691",
+      "title": "Дело о введении всеобщего обучения в городе Перми Пермской губернии Оренбургского учебного округа",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1736358",
+      "title": "Дело об открытии Соликамской женской прогимназии Пермской губернии на средства земства",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1764560",
+      "title": "Об исключении из списка предприятий, имеющих общесоюзное значение, предприятия \"Кизеловские копи\"",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "правительственный указ/декрет (О ...)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1768315",
+      "title": "Народные песни Красноуфимского уезда, собранные А. М. Овчинниковым",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "народные песни/фольклор",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1786874",
+      "title": "Письма рабочих Пермских пушечных заводов Озерову И. Х. о причинах убыточности заводов",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "личная переписка",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1786896",
+      "title": "Обзоры по проблемам судоходства по рекам Каме и Печоре в связи с разработкой в их бассейнах железных руд, золота, платины и друг...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1786916",
+      "title": "Документы комиссии по исследованию заводского хозяйства на Пермских пушечных заводах (выписки из докладной записки Комиссии и из...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "документы комиссии/доклады об учреждении",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1806476",
+      "title": "Отчет Пермского губернского экономического совещания. Отчет 1. 1-го октября 1921 года",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "отчёт",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1809435",
+      "title": "Герб Пермского края. № 105",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "герб (геральдика)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1809454",
+      "title": "Герб Осинского городского округа Пермский край. № 4480",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "герб (геральдика)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1893125",
+      "title": "Доклады, проекты представления об учреждении университетов в Перми и Ростове-на-Дону",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "документы комиссии/доклады об учреждении",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1978166",
+      "title": "Распоряжение ГКО СССР № 2619 с о приостановлении в текущем году достройки железнодорожной линии станция Фосфоритная - берег р. К...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "постановление/распоряжение властей",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1983084",
+      "title": "Постановление ГКО СССР № 2959 с об отмене п. 2 постановления ГКО № 2521 с от 18 ноября 1942 г. в части расширения ТЭЦ Соликамско...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "постановление/распоряжение властей",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/1988448",
+      "title": "Письмо смотрителя Соликамского духовного училища Матвея Боголепова М.П. Погодину с просьбой прислать ему книги \"Простая речь о м...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "личная переписка",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/2039500",
+      "title": "Постановление ГКО СССР № 3847 с о расширении и строительстве карналлитовых обогатительных фабрик на Соликамском и Березниковском...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "постановление/распоряжение властей",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/2043012",
+      "title": "Распоряжение ГКО СССР № 4528 о продлении до 1 июня 1944 г. срока работы нестроевых красноармейцев, работающих на Архангельском и...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "постановление/распоряжение властей",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/315754",
+      "title": "Смоленск. Дом отдыха \"Красный бор\"",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/315755",
+      "title": "Смоленск. Кинотеатр \"Октябрь\"",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/315756",
+      "title": "Смоленск. Крепостная стена. Историко-архитектурный памятник XVI-XVII вв.",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316075",
+      "title": "1905 год в Смоленской губернии",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316158",
+      "title": "Avraamievskii monastyr'' g. Smolensk",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316162",
+      "title": "Bogomaterinskaia tserkov''. Smolensk",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316172",
+      "title": "Chudotvornaia ikona Bozh''ei Materi-Odigitrii v Bogomaterinskom khramie. [Smolensk]",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316173",
+      "title": "Chudotvornaia ikona Bozh''ei Materi-Odigitrii v Uspenskom soborie. [Smolensk]",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316193",
+      "title": "Freska v zimnei tserkvi Fedorovskoi Bozh''ei Materi. IAroslavl''",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316234",
+      "title": "Kafedral''nyi Uspenskii sobor s Kazanskoi gory. Smolensk",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316241",
+      "title": "Kriepostnaia stiena s bashnei Veselukha. Smolensk",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316269",
+      "title": "Obshchii vid Kremlia s kolokol''ni Vsesviatskoi tserkvi. Rostov Velikii",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316270",
+      "title": "Obshchii vid sievernoi chasti s kolokol''ni Uspenskago sobora. g. Smolensk",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316271",
+      "title": "Obshchii vid sievero-zapadnoi chasti g. Smolenska",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316383",
+      "title": "Siev.-Vost. chast'' g. Smolenska s kriepostnoi stienoi",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316385",
+      "title": "Smolensk. Chast'' kriepostnoi stieny na Kazanskoi gorie",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316386",
+      "title": "Smolensk. Kriepostnaia stiena",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316387",
+      "title": "Smolensk. Kriepostnaia stiena",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316388",
+      "title": "Smolensk. Nikol''skiia vorota",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316389",
+      "title": "Smolensk. Pamiatnik 1812 g.",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316390",
+      "title": "Smolensk. Petropavlovskaia tserkov'' XII(?) vieka",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316391",
+      "title": "Smolensk. Uspenskii sobor s vostoka",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316392",
+      "title": "Smolensk. Vid iz Lopatinskago sada",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316393",
+      "title": "Smolensk. Vid na Kriepostnuiu stienu iz Lopatinskago sada",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316422",
+      "title": "TSerkov'' Voskreseniia i Uspenskii sobor. Vid so stieny. Rostov Velikii",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316432",
+      "title": "Vid na Dniepr s bashni Veselukha. Smolensk",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316436",
+      "title": "Vid na kriepostnuiu stienu s bashni Veselukha. Smolensk",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/316468",
+      "title": "Zadnieprovskaia storona Smolenska ot bashni Veselukha",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/320515",
+      "title": "Боровск",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/327531",
+      "title": "Волостные суды в Ярославской губернии",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "волостные суды",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/328823",
+      "title": "Вся Пермь",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/329159",
+      "title": "Вязьма",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/329271",
+      "title": "г. Пермь. Берег Камы (за Нижними Муллами)",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/329272",
+      "title": "г. Пермь. Вид из тоннеля",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/329273",
+      "title": "г. Пермь. Жел.-Дор. мост через р. Каму",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/329274",
+      "title": "г. Пермь. Крестьянский поземельный банк",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/329275",
+      "title": "г. Пермь. Мариинская женская гимназия",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/329276",
+      "title": "г. Пермь. Набережн., бульвар и здание «Биржи»",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/329277",
+      "title": "г. Пермь. Набережная р. Камы",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/329278",
+      "title": "г. Пермь. Общественное собрание (В загородном саду)",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/329279",
+      "title": "г. Пермь. Окружной суд",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/329280",
+      "title": "Г. Пермь. Покровская ул. Аптека Бартминского",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/329281",
+      "title": "г. Пермь. Польский костел",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/329282",
+      "title": "г. Пермь. р. Кама. Пароход «С.-Петербург» у пристани",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/329283",
+      "title": "г. Пермь. Сибирская Ул. (Аллея тополей и Гост. двор)",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/329284",
+      "title": "г. Пермь. Сибирская улица",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/329285",
+      "title": "г. Пермь. Управление Перм. ж. д.",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/330462",
+      "title": "Движение населения Пермской губернии с 1882 года по 1900 год. Ч. 12. Осинский уезд",
+      "territory": "Пермская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/330755",
+      "title": "Дело о составе ополчения в Ярославской губернии",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/331356",
+      "title": "Сборник Отделения русского языка и словесности Императорской Академии наук. Т. 76, № 1. [Диалектологическая карта Калужской губе...",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "thematic_map_exception_not_cartography",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/332973",
+      "title": "Журналы Мышкинского уездного земского собрания .... ... экстренного заседания 9-го августа 1914 года и очередной сессии 1914 год...",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "постоянные институциональные журналы/съезды",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/334089",
+      "title": "Из партийного прошлого. [Вып. 1]",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/334090",
+      "title": "Из партийного прошлого. Вып. 2",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/335863",
+      "title": "Кама. Пристань у г. Перми",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/337025",
+      "title": "Князья угличские",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/337830",
+      "title": "Котласская железная дорога с наб. Камы у г. Перми",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/342905",
+      "title": "Малоярославец",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/343005",
+      "title": "Сборник Отделения русского языка и словесности Императорской Академии наук. Т. 70, № 7. Материалы для изучения говоров и быта Ме...",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "thematic_map_exception_not_cartography",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/355089",
+      "title": "Описание празднования столетнего юбилея Екатерининского дома призрения ближнего в Ярославле",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "юбилейные/анниверсарные очерки",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/355543",
+      "title": "Отечественная война 1812 г. в пределах Смоленской губернии",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/355926",
+      "title": "Отчет о деятельности Пермского отдела, состоящего под высочайшим его императорского величества покровительством, Общества повсем...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "отчёт",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/356130",
+      "title": "Очерки Пошехонья",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/357194",
+      "title": "Переславль-Залесский",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/357211",
+      "title": "Пермь",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/357212",
+      "title": "Пермь",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/357213",
+      "title": "Пермь. Богородицкая школа",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/357216",
+      "title": "Пермь. Дом Д. Г. Ижболдина. Уг. Петропавловской и Осинской ул.",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/357217",
+      "title": "Пермь. Женская гимназия",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/357218",
+      "title": "Пермь. Мариинская женская гимназия",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/357219",
+      "title": "Пермь. Набережная р. Камы",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/357220",
+      "title": "Пермь. Сибирская застава",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/357221",
+      "title": "Пермь. Театральная площадь",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/357992",
+      "title": "Материалы по Пермской епархии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/360454",
+      "title": "Предварительные итоги Всероссийской переписи населения 1920 года по Калужской губернии",
+      "territory": "Калужская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/360780",
+      "title": "Привет из Смоленска. Дворянское Собрание в г. Смоленске",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "постоянная рубрика «Привет из/открытка город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/360781",
+      "title": "Привет из Смоленска. Зимний вид сада Блонье",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "постоянная рубрика «Привет из/открытка город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/360782",
+      "title": "Привет из Смоленска. Никольские ворота",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "постоянная рубрика «Привет из/открытка город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/360784",
+      "title": "Привет из Смоленска. Смоленская Духовная семинария",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "постоянная рубрика «Привет из/открытка город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/361202",
+      "title": "Проследование их величеств чрез г. Ярославль в 1724 г.",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/361400",
+      "title": "Путешествие в Смоленск, или Воспоминание 1812 года",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/362990",
+      "title": "Русские крестьяне. Жизнь. Быт. Нравы. Т. 3. Калужская губерния",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/364317",
+      "title": "Село Угодичи, Ростовского уезда Ярославской губернии",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366114",
+      "title": "Смоленск",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366116",
+      "title": "Смоленск",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366118",
+      "title": "Смоленск",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366119",
+      "title": "Смоленск",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366120",
+      "title": "Смоленск в годы Великой Отечественной войны",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366121",
+      "title": "Смоленск в составе Речи Посполитой",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366122",
+      "title": "Смоленск сегодня",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366123",
+      "title": "Смоленск. - Smolensk. Вид с Казанской горы",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366124",
+      "title": "Смоленск. - Smolensk. Город и река Днепр",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366125",
+      "title": "Смоленск. - Smolensk. Кафедральный собор",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "церковь/собор/часовня/монастырь (здание)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366126",
+      "title": "Смоленск. - Smolensk. Старый Днепровский мост и ворота Божией Матери",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366127",
+      "title": "Смоленск. \"Теремок\". Филиал областного краеведческого музея в селе Тагашкино [т. е. Талашкино]",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366128",
+      "title": "Смоленск. Александровское реальное училище",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "сборник/извлечение/отзыв/лексика (не карта)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366129",
+      "title": "Смоленск. Башни Смоленской крепости. Памятник архитектуры XVI - начала XVII вв. Автор Ф. Конь",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366131",
+      "title": "Смоленск. Большая Благовещенская улица",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366132",
+      "title": "Смоленск. Большая Советская улица",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366133",
+      "title": "Смоленск. Вид на город",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366134",
+      "title": "Смоленск. Вид на Днепр",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366135",
+      "title": "Смоленск. Вид на Заднепровье",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366136",
+      "title": "Смоленск. Вид на Заречье",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366137",
+      "title": "Смоленск. Вид на собор через дверь Кремлевских стен",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "церковь/собор/часовня/монастырь (здание)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366138",
+      "title": "Смоленск. Вид на Соборную гору со стороны Днепра",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "церковь/собор/часовня/монастырь (здание)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366139",
+      "title": "Смоленск. Вознесенский собор. XVII в. Выставочный зал музея изобразительных и прикладных искусств имени С. Т. Коненкова",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "церковь/собор/часовня/монастырь (здание)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366140",
+      "title": "Смоленск. Вхождение в состав Московского государства",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366141",
+      "title": "Смоленск. Выставочный зал Смоленского музея-заповедника. Памятник архитектуры конца XVII века",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366144",
+      "title": "Смоленск. Гостиница \"Россия\"",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366145",
+      "title": "Смоленск. Государственный медицинский институт",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366146",
+      "title": "Смоленск. Дворец культуры железнодорожников",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366147",
+      "title": "Смоленск. Дворянское собрание",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366148",
+      "title": "Смоленск. Днепровские ворота Смоленской крепостной стены",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366149",
+      "title": "Смоленск. Дом купеческого общества, в котором помещается 2-ое реальное училище",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366150",
+      "title": "Смоленск. Дом партийного просвещения",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366151",
+      "title": "Смоленск. Дом профсоюзов",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366152",
+      "title": "Смоленск. Дом Советов",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366153",
+      "title": "Смоленск. Драматический театр",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366154",
+      "title": "Смоленск. Драматический театр",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366155",
+      "title": "Смоленск. Дума",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366156",
+      "title": "Смоленск. Женское Епархиальное училище на Б. Вознесенской улице",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366157",
+      "title": "Смоленск. Кинотеатр \"Октябрь\"",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366158",
+      "title": "Смоленск. Князь Ростислав Мстиславич",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366159",
+      "title": "Смоленск. Участие смолян в Грюнвальдской битве",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366160",
+      "title": "Смоленск. Крепостная стена (изнутри)",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366161",
+      "title": "Смоленск. Крепостная стена",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366162",
+      "title": "Смоленск. Курган Бессмертия. Архитектор Д. Коваленко",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366163",
+      "title": "Смоленск. Малахов. ворота и пам. Энгельгардту",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366164",
+      "title": "Смоленск. Медицинский институт. Административный корпус",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366166",
+      "title": "Смоленск. Музей русской старины кн. Тенишевой",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366167",
+      "title": "Смоленск. Музей скульптуры С. Т. Коненкова",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366168",
+      "title": "Смоленск. Общий вид",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366170",
+      "title": "Смоленск. Памятник 1812 года",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366171",
+      "title": "Смоленск. Памятник героям 1812 года",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366172",
+      "title": "Смоленск. Памятник героям Отечественной войны 1812 года. Автор Н. Шуцман",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366173",
+      "title": "Смоленск. Памятник героям Отечественной войны 1812 года. Архитектор Н. Шуцман",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366174",
+      "title": "Смоленск. Памятник героям Отечественной войны 1812 года. Скульптор Н. С. Шуцман",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366175",
+      "title": "Смоленск. Памятник комсомольцу-партизану Владимиру Куриленко. Скульптор К. Б. Пастернак",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366176",
+      "title": "Смоленск. Памятник М. И. Глинке. Скульптор А. Бок",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366177",
+      "title": "Смоленск. Памятник М. И. Глинке. Скульптор А. Бок. Архитектор И. Боголюбов",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366178",
+      "title": "Смоленск. Памятник М. И. Глинке. Скульптор А. Р. Бок",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366179",
+      "title": "Смоленск. Памятник М. И. Кутузову-Смоленскому",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366180",
+      "title": "Смоленск. Памятник М. И. Кутузову. Скульптор Г. Мотовилов",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366181",
+      "title": "Смоленск. Памятник освободителям Смоленской области. Башня Громовая",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366182",
+      "title": "Смоленск. Памятник русскому скульптору М. О. Микешину. Автор А. Рукавишников. Архитектор И. Воскресенский",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366183",
+      "title": "Смоленск. Памятник Софийскому полку за заслуги в Отечественной войне 1812 года",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366184",
+      "title": "Смоленск. Памятный знак воинам Западного и Калининского фронтов, освободившим Смоленщину от немецко-фашистских захватчиков в 194...",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366185",
+      "title": "Смоленск. Проспект Ю. А. Гагарина",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366186",
+      "title": "Смоленск. Пушкинская улица и Театральная площадь",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366187",
+      "title": "Смоленск. Развилка улиц Коммунистической и Глинки",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366188",
+      "title": "Смоленск. Теремок во Фленове. Филиал музея изобразительных и прикладных искусств имени С. Т. Коненкова",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366189",
+      "title": "Смоленск. Троицкое шоссе",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366191",
+      "title": "Смоленск. Улица Ленина",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366192",
+      "title": "Смоленск. Филиал Смоленского музея изобразительных и прикладных искусств во Фленове. Художник Н. Рерих. Архитектор В. Суслов",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366193",
+      "title": "Смоленск. Шейновская башня",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366217",
+      "title": "Смоленская крепость",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366227",
+      "title": "Смоленское сражение 1812 года",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/366228",
+      "title": "Смоленщина. Так починається Днiпро",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/370945",
+      "title": "Список г.г. губернских и уездных предводителей и депутатов дворянства Ярославской губернии",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "штат/роспись должностей",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/370966",
+      "title": "Список населенных мест Ярославского уезда",
+      "territory": "Ярославская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/372259",
+      "title": "Статистический сборник по Ярославской губернии. 1913, вып. 97. Население г. Любима Ярославской губернии",
+      "territory": "Ярославская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/388862",
+      "title": "Устав (Основной Закон) Ярославской области",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "устав/правила общества",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/388884",
+      "title": "Устав Пермского края",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "устав/правила общества",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/389065",
+      "title": "Смоленск. Филиал Смоленского музея изобразительных и прикладных искусств во Фленове. Художник Н. Рерих. Архитектор В. Суслов",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/391259",
+      "title": "Штат Ярославльскаго наместничества,",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "штат/роспись должностей",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/391595",
+      "title": "Юбилейные дни (1861-1911) в Ярославле",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "юбилейные/анниверсарные очерки",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/392022",
+      "title": "Ярославль. Вхождение в состав Московского государства",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/392023",
+      "title": "Ярославль. Искусство",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/392025",
+      "title": "Ярославль. Романов-Борисоглебск. Углич",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/392028",
+      "title": "Ярославская губерния",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/392031",
+      "title": "Ярославские владетельные князья",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/392032",
+      "title": "Ярославский уезд",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/392033",
+      "title": "Ярославский Спасо-Преображенский монастырь, что ныне архиерейский дом, с присовокуплением жития св. благоверных князей Феодора, ...",
+      "territory": "Ярославская",
+      "decision": "drop",
+      "bucket": "церковь/собор/часовня/монастырь (здание)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/394258",
+      "title": "G. Cherdyn''",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/394626",
+      "title": "Antimins vremen Imperatritsy Elizavety Petrovny, khraniashchiisia v Uspenskoi tserkvi g. Cherdyn''",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/394695",
+      "title": "Bielaia bielka. Iz kollektsii N.P. Alina v Cherdyni",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/394696",
+      "title": "Bielaia lisitsa. Chuchela iz kollektsii N.P. Alina v Cherdyni",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/394698",
+      "title": "Bielyia kuropatki. Iz kollektsii N.P. Alina v Cherdyni",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/394800",
+      "title": "G. Cherdyn''",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/394805",
+      "title": "Chernyi riabchik. Iz kollektsii N.P. Alina v Cherdyni",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/394926",
+      "title": "Doska s nadpis''iu na Spasskoi chasovnie. [Cherdyn'']",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/395110",
+      "title": "Gornostai. Chuchela iz kollektsii N.P. Alina v Cherdyni",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/395571",
+      "title": "Norka. Iz kollektsii N.P. Alina v Cherdyni",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/395867",
+      "title": "Riabchik kedrovik. Iz kollektsii N.P. Alina v Cherdyni",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/395921",
+      "title": "Rys''. Iz kollektsii N.P. Alina v Cherdyni",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/396034",
+      "title": "Spasitel'' v temnitsie. Rieznaia figura v Uspenskoi tserkvi g. Cherdyn''",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/396039",
+      "title": "Spasskaia chasovnia nad ubiennymi voinami v g. Cherdyn''",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/396269",
+      "title": "Ural''skiia sovy. Iz kollektsii N.P. Alina v Cherdyni",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/396383",
+      "title": "Vid na r. Kolvu i na r. Visheru. Cherdyn''",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/396423",
+      "title": "Vid s vodoprovodnoi bashni na kamen'' Pomod. Cherdyn''",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/396626",
+      "title": "Zhenskii monastyr'' v Cherdyni (drevnieishaia tserkov'' v kraie)",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "латинская транслитерация (фото/музейный экспонат)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/399440",
+      "title": "Борьба за Смоленск (XVI-XVII вв.)",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/403349",
+      "title": "Военно-статистическое обозрение Российской империи. Т. 8, ч. 2. Смоленская губерния",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "already_in_catalog_duplicate",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/404510",
+      "title": "Волости и гмины 1890 года. .... 40. Смоленская губерния",
+      "territory": "Смоленская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/406056",
+      "title": "Вяземские писцовые книги князя Ивана Федоровича Волконского. 1627 года",
+      "territory": "Смоленская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/407459",
+      "title": "Дело о дозволении дьякону Дорогобужской Одигитриевской церкви Алексею Среднинскому, содержать в Дорогобуже частную школу для дет...",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/412140",
+      "title": "Здравствуй, Смоленск!",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/413599",
+      "title": "Дело о пособии на учреждение в г. Вязьме женского монастыря",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/416689",
+      "title": "Историческое описание Тихоновой Калужской пустыни, в связи с историческим сказанием о Преподобном Тихоне, Калужском чудотворце, ...",
+      "territory": "Калужская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/417411",
+      "title": "Калуга. Гостиный двор. Памятник архитектуры конца XVIII - начала XIX вв.",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/417412",
+      "title": "Калуга. Дворец пионеров",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/417413",
+      "title": "Калуга. Областной драматический театр имени А. В. Луначарского",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/417414",
+      "title": "Калужская губерния в 1905 году",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/425565",
+      "title": "Краткий очерк торговой и промышленной деятельности Калужской губернии",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/426594",
+      "title": "Летопись калужская от отдаленных времен до 1841 года",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/426742",
+      "title": "Малоярославец и Малоярославецкие юбилейные торжества 1912 года",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "юбилейные/анниверсарные очерки",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/428860",
+      "title": "Наша Русь святая. 7. Смоленск и Смоленская губерния",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/434879",
+      "title": "Опыт статистического обозрения Калужской губернии",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/435247",
+      "title": "Отчет Вяземского уездного экономического совещания Смоленской губернии с 1-го июля по 1-е октября 1921 года",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "отчёт",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/436591",
+      "title": "Первая Всеобщая перепись населения Российской империи 1897 г.. 40. Смоленская губерния",
+      "territory": "Смоленская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/436699",
+      "title": "Первая Всеобщая перепись населения Российской империи 1897 г.. 15. Калужская губерния",
+      "territory": "Калужская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/436700",
+      "title": "Первая Всеобщая перепись населения Российской империи 1897 г.. 15. Калужская губерния",
+      "territory": "Калужская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/436776",
+      "title": "Перемышль в дни пребывания Николая II в нем",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/446262",
+      "title": "Смоленск в революции 1917 года",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/446263",
+      "title": "Смоленск и его стены",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/446264",
+      "title": "Смоленская губерния",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/446265",
+      "title": "Смоленская набережная. Справа сверху: набережная в начале ХХ века",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/446266",
+      "title": "Смоленская оборона. 1609-1611 гг.",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/451086",
+      "title": "Списки населенных мест Российской империи, составленные и издаваемые Центральным статистическим комитетом Министерства внутренни...",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "already_in_catalog_duplicate",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/451091",
+      "title": "Списки населенных мест Российской империи, составленные и издаваемые Центральным статистическим комитетом Министерства внутренни...",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "already_in_catalog_duplicate",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/459912",
+      "title": "Устав Калужской области",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "устав/правила общества",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/460069",
+      "title": "Устав Смоленской области",
+      "territory": "Смоленская",
+      "decision": "drop",
+      "bucket": "устав/правила общества",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/460918",
+      "title": "Церковно-историческое описание упраздненных монастырей, находящихся в пределах Калужской епархии",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "церковь/собор/часовня/монастырь (здание)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/465249",
+      "title": "Об утверждении проекта положения для сиротского дома в Калуге",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "правительственный указ/декрет (О ...)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/465331",
+      "title": "Отношение Калужского гражданского губернатора П. Н. Каверина от 12 июля 1812 г. министру полиции А. Д. Балашову о сделанных им р...",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "переписка/рапорт/отношение (официальная корреспонденция)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/465793",
+      "title": "Переписка с Исполнительным комитетом съезда солдатских, рабочих и крестьянских депутатов Западного фронта и Калужским Советом ра...",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "личная переписка",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/466335",
+      "title": "Материалы о состоянии дел в Пермской епархии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/466704",
+      "title": "Всеподданнейший рапорт фельдмаршала главнокомандующего армиями князя М. И. Голенищева-Кутузова от 24 октября 1812 г. о подвигах ...",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "переписка/рапорт/отношение (официальная корреспонденция)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/466734",
+      "title": "Об учреждении университетов в городах Иркутске, Перми и Ростове-на-Дону Обл. Войска Донского",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "правительственный указ/декрет (О ...)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/466759",
+      "title": "О выдаче полицейским гор. Калуги разъездных денег в связи с необходимостью частых разъездов для борьбы с революционными волнения...",
+      "territory": "Калужская",
+      "decision": "drop",
+      "bucket": "правительственный указ/декрет (О ...)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/678601",
+      "title": "Переписка с Уральским горным управлением по прошению горнопромышленника Ладыженского о предоставлении ему отсрочки в принятии от...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "личная переписка",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/685148",
+      "title": "Красная книга Пермского края",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/687741",
+      "title": "Материалы к оценке земель Пермской губернии. Вып. 3. Пермское Зауралье. Естественно-историческая часть. Почвы",
+      "territory": "Пермская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/708651",
+      "title": "Список населенных мест Пермской губернии. Екатеринбургский уезд",
+      "territory": "Пермская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/708657",
+      "title": "Труды совещания для выработки мер к охранению рыбных богатств в Зауральской части Пермской губернии, бывшего в г. Екатеринбурге ...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/708670",
+      "title": "Очерк кустарных промыслов Екатеринбургского уезда Пермской губернии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/708858",
+      "title": "Об усилении штатов полиции в городах Перми и Екатеринбурге",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "правительственный указ/декрет (О ...)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/743940",
+      "title": "Березники: [комплект открыток]",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/743943",
+      "title": "Г. Пермь. Управление Пермэнерго",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/743946",
+      "title": "Гор. Пермь. Здание Пермского Совнархоза",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "постоянная рубрика «Привет из/открытка город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/743994",
+      "title": "Пермь. Комсомольский проспект",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/743995",
+      "title": "Пермь. Набережная Камы",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/743996",
+      "title": "Пермь: [комплект открыток]",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/743997",
+      "title": "Пермь: [комплект открыток]",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/743998",
+      "title": "Пермь: [комплект открыток]",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/743999",
+      "title": "Пермь: [комплект открыток]",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/744000",
+      "title": "Пермь: [комплект открыток]",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "открытка «город+сцена»",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/744002",
+      "title": "Старая Пермь: [комплект открыток]",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/746627",
+      "title": "Протокол заседаний Пермского комитета для обсуждения вопроса о проведении линии железной дороги между Волжским и Обским бассейна...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "протокол заседания",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/746760",
+      "title": "Церковно-историческое и археологическое описание г. Соликамска",
+      "territory": "Пермская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/746764",
+      "title": "Материалы по изучению Пермского края. Вып. 5",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/746792",
+      "title": "Свадебные обряды у обвинских крестьян",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "народные песни/фольклор",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/746911",
+      "title": "Исторический взгляд на лесохозяйство в Пермском нераздельном имении графов Строгоновых",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/746933",
+      "title": "Устав Пермского общества взаимного кредита",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "устав/правила общества",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/747416",
+      "title": "Систематическое оглавление \"Сборника Пермского земства\" за 1872-1873 года",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/747426",
+      "title": "Отчет о состоянии Пермской гимназии.... ...за 1892-1893 учебный год",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "отчёт",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/747448",
+      "title": "Мариинская женская гимназия в Перми к пятидесятилетнему юбилею",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/747452",
+      "title": "Материалы по изучению Пермского края. Вып. 4",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/747456",
+      "title": "Список населенных мест Пермской губернии. Ирбитский уезд",
+      "territory": "Пермская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/747458",
+      "title": "Список населенных мест Пермской губернии. Пермский уезд",
+      "territory": "Пермская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/747460",
+      "title": "Список населенных мест Пермской губернии. Осинский уезд",
+      "territory": "Пермская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/747463",
+      "title": "Список населенных мест Пермской губернии. Чердынский уезд. Чердынский уезд",
+      "territory": "Пермская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/747464",
+      "title": "Список населенных мест Пермской губернии. Шадринский уезд",
+      "territory": "Пермская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/747467",
+      "title": "Список населенных мест Пермской губернии. Соликамский уезд. Соликамский уезд",
+      "territory": "Пермская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/747472",
+      "title": "25-тилетие Пермского уездного земства. (10 мая 1870 - 10 мая 1895 г.)",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/747507",
+      "title": "Обзор финансового положения земств Пермской губернии. [Вып. 1]. За десятилетний период времени 1899-1909 гг.",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/747509",
+      "title": "Отчет о деятельности Общества попечения о народном образовании в г. Красноуфимске и его уезде.... ...за 1898 г.",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "отчёт",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/747522",
+      "title": "Санитарный обзор Пермской губернии... за 1913 год",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/747541",
+      "title": "Отчет о состоянии Пермской гимназии.... ...за 1886-87 учебный год",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "отчёт",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/747562",
+      "title": "Пермская губерния в сельскохозяйственном отношении. [1906 г.]",
+      "territory": "Пермская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/747568",
+      "title": "Систематический свод постановлений Пермского губернского земского собрания. Вып. 4. Взаимное земское страхование. Противопожарны...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/747574",
+      "title": "Материалы по изучению Пермского края. Вып. 2",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/747760",
+      "title": "Отчет о деятельности Пермского дамского попечительства о бедных .... ... в 1869 г.",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "отчёт",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/749954",
+      "title": "Отчет Пермского общества потребителей \"Объединение\".... ... за 1915 год",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "отчёт",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/749971",
+      "title": "Общему собранию членов Пермского общества потребителей 15, 16 и 23 и 24 июля 1913 года Правления Общества доклад",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/749983",
+      "title": "Материалы для истории Пермского края",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/749984",
+      "title": "Отрывки из народного творчества Пермской губернии",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "народные песни/фольклор",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/750005",
+      "title": "Труды Совещания врачей, представителей земств, общественных и других организаций Пермской губернии для выработки мероприятий по ...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/750006",
+      "title": "Журналы Пермского губернского статистического комитета 19 января 1880 г.",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "постоянные институциональные журналы/съезды",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/750023",
+      "title": "Отчет об операциях Пермского общества потребителей .... ... за 1914-1915 г.",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "отчёт",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/750049",
+      "title": "Журналы Пермского епархиального съезда духовенства.... ... очередного... 1894 года. № 1-14",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "постоянные институциональные журналы/съезды",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/757876",
+      "title": "Указатель статей, касающихся Пермской губернии и напечатанных в неофицильном отделе Пермских губернских ведомостей в течение сор...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/757904",
+      "title": "Материалы к выяснению вопроса об обеспечении горнорабочего населения Пермской губернии в продовольственном отношении",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "borderline_excluded_by_user",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/757907",
+      "title": "Адрес-календарь и справочная книжка Пермской губернии.... на 1907 г.",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "адрес-календарь/справочная книжка (директория)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/758209",
+      "title": "Пермская губерния в сельскохозяйственном отношении. 1906 г. Вып. 2. Состояние хлебов и трав к 1-му июня 1906 г.",
+      "territory": "Пермская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/758210",
+      "title": "Пермская губерния в сельскохозяйственном отношении. 1906 г. Вып. 3. Состояние хлебов и трав к 1-му июля 1906 г. и площади яровых...",
+      "territory": "Пермская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/835032",
+      "title": "Исторический очерк Пермской Мариинской женской гимназии за двадцать пять лет ее существования",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "прочее (не классифицировано явно, не картография)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/846374",
+      "title": "Доклады комиссии СТО о результатах обследования постройки Кизеловской районной электростанции и переписка с ВСНХ и с Госпланом о...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "личная переписка",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/854029",
+      "title": "Переписка с ВСНХ о Пермском суперфосфатном заводе",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "личная переписка",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/862148",
+      "title": "Протокол заседания ответственных работников Центрального управления \"Пермсоль\" и доклад Главного управления горной промышленност...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "протокол заседания",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/888280",
+      "title": "О флаге Пермского края: Закон Пермского края от 03.10.2007 № 124-ПК",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "герб (геральдика)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/899061",
+      "title": "О гербе Пермского края: Закон Пермского края от 03.10.2007 № 123-ПК",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "герб (геральдика)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/900117",
+      "title": "Список населенных мест Пермской губернии",
+      "territory": "Пермская",
+      "decision": "keep",
+      "bucket": "spatial_data",
+      "imported": true
+    },
+    {
+      "url": "https://prlib.ru/item/924637",
+      "title": "Об ассигновании 2637 руб 62 1/2 коп. сер. на исправление каменной церкви в Троицком солеваренном заводе. 6 мая - 12 июня 1857 г.",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "правительственный указ/декрет (О ...)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/938638",
+      "title": "Дело о прибавке цены на соль, вывариваемую на Соликамских верницах наследников Турчанинова. Н. 29/III; В.у. 8/VII. 1812 г.",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "делопроизводство (дело о/по)",
+      "imported": false
+    },
+    {
+      "url": "https://prlib.ru/item/979747",
+      "title": "Заголовок к списку с грамоты 7189 года 22 июля от царя и великого князя Федора Алексеевича в Пермь великую, в Чердынь и к Солика...",
+      "territory": "Пермская",
+      "decision": "drop",
+      "bucket": "сборник/извлечение/отзыв/лексика (не карта)",
+      "imported": false
+    }
+  ]
+}
