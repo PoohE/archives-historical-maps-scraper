@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -192,11 +193,22 @@ def collect() -> None:
                          if getattr(b, "type", "") == "text"), "")
             for line in text.splitlines():
                 parts = [p.strip() for p in line.split("|")]
-                if len(parts) < 3 or not parts[0].isdigit():
+                if len(parts) < 3:
                     continue
-                res[int(parts[0])] = {"code": parts[1],
-                                      "sure": parts[2].lower() == "true",
-                                      "why": parts[3] if len(parts) > 3 else ""}
+                # Модель иногда отвечает ОДНОЙ строкой на диапазон: «500-519|нет|false|…»
+                # (22.11.2026: так потерялись 20 записей «Пермских губернских ведомостей»,
+                # и в отчёте это выглядело как «не размечено», хотя ответ был дан).
+                m = re.fullmatch(r"(\d+)\s*(?:[-–]\s*(\d+))?", parts[0])
+                if not m:
+                    continue
+                lo = int(m.group(1))
+                hi = int(m.group(2)) if m.group(2) else lo
+                if hi < lo or hi - lo > PER_REQ:
+                    continue
+                verdict = {"code": parts[1], "sure": parts[2].lower() == "true",
+                           "why": parts[3] if len(parts) > 3 else ""}
+                for idx in range(lo, hi + 1):
+                    res[idx] = dict(verdict)
     if pending:
         print("ещё обрабатывается пакетов: %d" % pending)
     with (WORK / "attributed.jsonl").open("w", encoding="utf-8") as f:
