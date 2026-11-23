@@ -32,8 +32,14 @@ def main() -> None:
     load_env(m.ENV_PATH)
     client = Client(auth=env("NOTION_TOKEN", required=True))
     schema = json.loads(m.SCHEMA_PATH.read_text(encoding="utf-8"))
-    props = schema["schema"]
-    fields = list(props.keys())
+    # Колонки — из заголовка САМОГО слепка, типы — из живой схемы: слепок обёртки
+    # (notion_catalog_export_resumable.py) шире статической схемы на поля-признаки
+    # «…: источник значения»; дописывать по статической — сдвинуть колонки.
+    with out_csv.open(encoding="utf-8-sig", newline="") as fh:
+        fields = next(csv.reader(fh))[2:]
+    live = client.data_sources.retrieve(data_source_id=schema["data_source_id"])["properties"]
+    props = {k: {"type": live.get(k, schema["schema"].get(k, {})).get("type", "rich_text")}
+             for k in fields}
     rel = json.loads(out_rel.read_text(encoding="utf-8"))
     id2title = {f: {v: k for k, v in mp.items()} for f, mp in rel.items()}
 
