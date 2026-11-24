@@ -48,6 +48,17 @@ def current(prop: dict, field: str, rel: dict):
     return v
 
 
+def norm(d: dict) -> dict:
+    """Список из одного значения и строка — одно и то же; порядок значений связи не важен."""
+    out = {}
+    for k, v in d.items():
+        if isinstance(v, list):
+            v = sorted(v) if len(v) != 1 else v[0]
+            v = v or None
+        out[k] = v
+    return out
+
+
 def main() -> None:
     fix_stdout()
     ap = argparse.ArgumentParser()
@@ -89,7 +100,7 @@ def main() -> None:
         props = api("GET", f"/pages/{r['page_id']}", token)["properties"]
         want = json.loads(r["set"])
         got = {f: current(props[f], f, rel) for f in want}
-        if got != want or r["note"] not in plain(props.get("Примечания")):
+        if norm(got) != norm(want) or r["note"] not in plain(props.get("Примечания")):
             bad.append((r["page_id"], got))
     print(f"сверка опросом: {len(rows) - len(bad)} из {len(rows)} верно; расхождения: {bad}")
 
