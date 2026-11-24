@@ -29,7 +29,8 @@ def encode(ptype: str, field: str, v, rel: dict) -> dict:
     if ptype == "rich_text":
         return {"rich_text": [] if v is None else [{"type": "text", "text": {"content": str(v)[:2000]}}]}
     if ptype == "relation":
-        return {"relation": [] if v is None else [{"id": rel[field][v]}]}
+        vals = [] if v is None else (v if isinstance(v, list) else [v])
+        return {"relation": [{"id": rel[field][x]} for x in vals]}
     raise ValueError(f"тип {ptype} поля «{field}» не поддержан")
 
 
@@ -42,7 +43,8 @@ def current(prop: dict, field: str, rel: dict):
     if t == "relation":
         back = {i.replace("-", ""): k for k, i in rel.get(field, {}).items()}
         ids = [x["id"].replace("-", "") for x in v]
-        return back.get(ids[0]) if len(ids) == 1 else (None if not ids else ids)
+        names = [back.get(i, i) for i in ids]
+        return None if not names else names[0] if len(names) == 1 else names
     return v
 
 
@@ -57,7 +59,7 @@ def main() -> None:
     rel = json.loads(Path(a.relations).read_text(encoding="utf-8"))
     for r in rows:                                   # проверить входы до записи
         for f, v in json.loads(r["set"]).items():
-            if v is not None and f in rel and v not in rel[f]:
+            if f in rel and any(x not in rel[f] for x in ([] if v is None else v if isinstance(v, list) else [v])):
                 sys.exit(f"нет «{v}» в справочнике поля «{f}»")
     print(f"правок: {len(rows)}")
     if a.dry_run:
