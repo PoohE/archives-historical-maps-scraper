@@ -212,6 +212,21 @@ for _k, _v in GQ3.items():
     SERIES_QUERIES[_k] += [x for x in _v if x not in SERIES_QUERIES[_k]]
 
 
+# --- расширение 24.11.2026: серия 17 (РККА), пачка 13 сессии анализа, решение владельца
+from series_queries_rkka_2026_11_24 import GQ4  # noqa: E402
+
+for _k, _v in GQ4.items():
+    SERIES_QUERIES.setdefault(_k, [])
+    SERIES_QUERIES[_k] += [x for x in _v if x not in SERIES_QUERIES[_k]]
+
+
+# --- расширение 24.11.2026: пачка 14 — ярославская земская оценка (после РККА, по очереди)
+from series_queries_yar_zem_2026_11_24 import GQ5  # noqa: E402
+
+for _k, _v in GQ5.items():
+    SERIES_QUERIES.setdefault(_k, [])
+    SERIES_QUERIES[_k] += [x for x in _v if x not in SERIES_QUERIES[_k]]
+
 # --- расширение площадок 16.11.2026 (строка Б1.6 чек-листа). Добавлены ТОЛЬКО те, у кого
 # проба `probe_sites_2026_11_16.py` показала форму КАРТОЧКИ ЗАПИСИ, а не раздел сайта.
 # Не добавлены, хотя выдача есть: statearchive.ru (ГАРФ) и gaso-ural.ru — в выдаче разделы
@@ -352,3 +367,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
